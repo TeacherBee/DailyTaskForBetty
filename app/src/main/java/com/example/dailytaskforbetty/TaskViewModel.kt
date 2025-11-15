@@ -64,4 +64,11 @@ class TaskViewModel : ViewModel() {
             _tasks.value = _tasks.value.filter { it.id != taskId }
         }
     }
+
+    // 减少总奖励（供商店兑换使用）
+    fun reduceReward(amount: Int) {
+        viewModelScope.launch {
+            _totalReward.value = _totalReward.value - amount
+        }
+    }
 }
