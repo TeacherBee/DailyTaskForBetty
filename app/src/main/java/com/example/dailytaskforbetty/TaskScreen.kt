@@ -86,6 +86,10 @@ fun TaskItem(
     onToggleComplete: () -> Unit, // 切换完成状态的回调
     onDelete: () -> Unit // 删除任务的回调
 ) {
+    // 已完成状态：统一灰色样式，且复选框不可点击
+    val isCompleted = task.isCompleted
+    val textColor = if (isCompleted) Color.Gray else MaterialTheme.colorScheme.onSurface
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -96,17 +100,27 @@ fun TaskItem(
         // 复选框：标记完成/未完成
         Checkbox(
             checked = task.isCompleted,
-            onCheckedChange = { onToggleComplete() } // 点击时触发回调
+            onCheckedChange = { if (!isCompleted) onToggleComplete() }, // 只有未完成时才响应点击
+            enabled = !isCompleted // 已完成时禁用复选框
         )
 
-        // 任务标题：完成的任务显示删除线
-        Text(
-            text = task.title,
-            style = MaterialTheme.typography.bodyLarge,
-            textDecoration = if (task.isCompleted) TextDecoration.LineThrough else TextDecoration.None,
-            color = if (task.isCompleted) Color.Gray else MaterialTheme.colorScheme.onSurface,
+        Column(
             modifier = Modifier.weight(1f)
-        )
+        ) {
+            // 任务标题：完成的任务显示删除线
+            Text(
+                text = task.title,
+                style = MaterialTheme.typography.bodyLarge,
+                textDecoration = if (task.isCompleted) TextDecoration.LineThrough else TextDecoration.None,
+                color = if (task.isCompleted) Color.Gray else MaterialTheme.colorScheme.onSurface,
+            )
+            // 任务奖励
+            Text(
+                text = "奖励：${task.reward} 积分",
+                style = MaterialTheme.typography.bodySmall,
+                color = Color(0xFF00C853) // 绿色，突出奖励
+            )
+        }
 
         // 删除按钮
         IconButton(onClick = { onDelete() }) {

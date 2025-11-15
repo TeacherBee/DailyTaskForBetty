@@ -6,4 +6,5 @@ package com.example.dailytaskforbetty
 object NavRoutes {
     const val TIME_SCREEN = "time_screen" // 时间页面
     const val TASK_SCREEN = "task_screen" // 任务列表页面
+    const val MY_SCREEN = "my_screen" // “我的”页面
 }
