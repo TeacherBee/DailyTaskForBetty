@@ -6,5 +6,6 @@ package com.example.dailytaskforbetty
 data class Task(
     val id: String,
     val title: String,
-    val isCompleted: Boolean
+    val isCompleted: Boolean,
+    val reward: Int // 奖励值
 )

@@ -32,6 +32,7 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Icon
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.material.icons.filled.Person
 
 
 
@@ -54,7 +55,7 @@ class MainActivity : ComponentActivity() {
 // 整个任务App的UI
 @Composable
 fun TaskApp(
-    taskViewModel: TaskViewModel = viewModel() // 获取TaskViewModel实例
+    taskViewModel: TaskViewModel // 获取TaskViewModel实例
 ) {
     val tasks by taskViewModel.tasks.collectAsState() // 观察任务列表变化
     var newTaskTitle by remember { mutableStateOf("") } // 输入框的文本状态
@@ -119,6 +120,8 @@ fun TaskApp(
 @Composable
 fun TaskTimeApp() {
     val navController = rememberNavController() // 导航控制器
+    // 创建全局共享的TaskViewModel（与导航控制器关联）
+    val taskViewModel: TaskViewModel = viewModel()
 
     // 使用Scaffold布局，底部放导航栏
     Scaffold(
@@ -132,11 +135,14 @@ fun TaskTimeApp() {
         ) {
             // 任务页面：关联你的TaskApp组件
             composable(NavRoutes.TASK_SCREEN) {
-                TaskApp() // 你的任务列表功能
+                TaskApp(taskViewModel = taskViewModel) // 任务列表功能
             }
             // 时间页面：关联新增的TimeScreen组件
             composable(NavRoutes.TIME_SCREEN) {
                 TimeScreen() // 时间显示功能
+            }
+            composable(NavRoutes.MY_SCREEN) {
+                MyScreen(taskViewModel = taskViewModel) // "我的"节目功能
             }
         }
     }
@@ -155,6 +161,11 @@ fun BottomNavigationBar(navController: NavController) {
             icon = Icons.Default.List,
             label = "任务",
             route = NavRoutes.TASK_SCREEN
+        ),
+        NavigationItem(
+            icon = Icons.Default.Person,
+            label = "我的",
+            route = NavRoutes.MY_SCREEN
         )
     )
 
@@ -202,6 +213,6 @@ private data class NavigationItem(
 @Composable
 fun TaskAppPreview() {
     DailyTaskForBettyTheme {
-        TaskApp()
+        TaskApp( taskViewModel = TaskViewModel())
     }
 }
