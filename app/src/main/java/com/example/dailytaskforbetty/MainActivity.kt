@@ -33,6 +33,7 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Icon
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.ShoppingCart
 
 
 
@@ -121,7 +122,8 @@ fun TaskApp(
 fun TaskTimeApp() {
     val navController = rememberNavController() // 导航控制器
     // 创建全局共享的TaskViewModel（与导航控制器关联）
-    val taskViewModel: TaskViewModel = viewModel()
+    val taskViewModel: TaskViewModel = viewModel() // 共享的任务ViewModel
+    val shopViewModel: ShopViewModel = viewModel() // 商店ViewModel
 
     // 使用Scaffold布局，底部放导航栏
     Scaffold(
@@ -141,8 +143,16 @@ fun TaskTimeApp() {
             composable(NavRoutes.TIME_SCREEN) {
                 TimeScreen() // 时间显示功能
             }
+            // 商店页面，传入共享的taskViewModel
+            composable(NavRoutes.SHOP_SCREEN) {
+                ShopScreen(
+                    shopViewModel = shopViewModel,
+                    taskViewModel = taskViewModel
+                )
+            }
+            // “我的“页面
             composable(NavRoutes.MY_SCREEN) {
-                MyScreen(taskViewModel = taskViewModel) // "我的"节目功能
+                MyScreen(taskViewModel = taskViewModel)
             }
         }
     }
@@ -162,6 +172,10 @@ fun BottomNavigationBar(navController: NavController) {
             label = "任务",
             route = NavRoutes.TASK_SCREEN
         ),
+        NavigationItem(
+            Icons.Default.ShoppingCart,
+            "商店",
+            NavRoutes.SHOP_SCREEN),
         NavigationItem(
             icon = Icons.Default.Person,
             label = "我的",
