@@ -124,6 +124,7 @@ fun TaskTimeApp() {
     // 创建全局共享的TaskViewModel（与导航控制器关联）
     val taskViewModel: TaskViewModel = viewModel() // 共享的任务ViewModel
     val shopViewModel: ShopViewModel = viewModel() // 商店ViewModel
+    val userViewModel: UserViewModel = viewModel() // 个人信息ViewModel
 
     // 使用Scaffold布局，底部放导航栏
     Scaffold(
@@ -152,7 +153,30 @@ fun TaskTimeApp() {
             }
             // “我的“页面
             composable(NavRoutes.MY_SCREEN) {
-                MyScreen(taskViewModel = taskViewModel)
+                MyScreen(
+                    navController = navController, // 传入导航控制器
+                    taskViewModel = taskViewModel,
+                    userViewModel = userViewModel
+                )
+            }
+            // 个人信息页面
+            composable(NavRoutes.USER_INFO_SCREEN) {
+                UserInfoScreen(
+                    navController = navController,
+                    userViewModel = userViewModel
+                )
+            }
+            // 账户中心页面
+            composable(NavRoutes.ACCOUNT_SCREEN) {
+                AccountScreen(
+                    navController = navController,
+                    taskViewModel = taskViewModel,
+                    shopViewModel = shopViewModel
+                )
+            }
+            // 设置页面
+            composable(NavRoutes.SETTINGS_SCREEN) {
+                SettingsScreen(navController = navController)
             }
         }
     }
