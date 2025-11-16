@@ -34,21 +34,25 @@ class ShopViewModel : ViewModel() {
     )
     val products: StateFlow<List<Product>> = _products.asStateFlow()
 
+    // 已兑换奖品列表
+    private val _redeemedProducts = MutableStateFlow<List<Product>>(emptyList())
+    val redeemedProducts: StateFlow<List<Product>> = _redeemedProducts.asStateFlow()
+
     // 兑换商品：需要传入TaskViewModel（用于修改总奖励）
     fun redeemProduct(productId: String, taskViewModel: TaskViewModel) {
         val currentReward = taskViewModel.totalReward.value
         viewModelScope.launch {
             _products.value = _products.value.map { product ->
                 if (product.id == productId) {
-                    // 检查条件：库存>0 且 奖励>=价格
                     if (product.stock > 0 && currentReward >= product.price) {
-                        // 1. 库存减1
                         val newStock = product.stock - 1
-                        // 2. 总奖励减价格
-                        taskViewModel.reduceReward(product.price)
+                        // 调用TaskViewModel减少积分，并传入商品名称（用于记录历史）
+                        taskViewModel.reduceReward(product.price, product.name)
+                        // 记录已兑换奖品
+                        _redeemedProducts.value = _redeemedProducts.value + product.copy(stock = 1) // 标记为已兑换
                         product.copy(stock = newStock)
                     } else {
-                        product // 不满足条件则不修改
+                        product
                     }
                 } else {
                     product
