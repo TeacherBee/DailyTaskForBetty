@@ -32,13 +32,15 @@ import androidx.compose.material3.Icon
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.ShoppingCart
+import java.text.SimpleDateFormat
+import java.util.*
 import com.example.dailytaskforbetty.navigation.NavRoutes
 import com.example.dailytaskforbetty.ui.screens.AccountScreen
 import com.example.dailytaskforbetty.ui.screens.MyScreen
 import com.example.dailytaskforbetty.ui.screens.SettingsScreen
 import com.example.dailytaskforbetty.ui.screens.ShopScreen
-import com.example.dailytaskforbetty.ui.screens.TaskItem
 import com.example.dailytaskforbetty.ui.screens.TimeScreen
+import com.example.dailytaskforbetty.ui.screens.PresetTaskItem
 import com.example.dailytaskforbetty.ui.screens.UserInfoScreen
 import com.example.dailytaskforbetty.ui.screens.MyPrizesScreen
 import com.example.dailytaskforbetty.viewmodel.ShopViewModel
@@ -65,62 +67,38 @@ class MainActivity : ComponentActivity() {
 // 整个任务App的UI
 @Composable
 fun TaskApp(
-    taskViewModel: TaskViewModel // 获取TaskViewModel实例
+    taskViewModel: TaskViewModel
 ) {
-    val tasks by taskViewModel.tasks.collectAsState() // 观察任务列表变化
-    var newTaskTitle by remember { mutableStateOf("") } // 输入框的文本状态
+    val tasks by taskViewModel.tasks.collectAsState()
+    // 格式化北京时间的工具
+    val timeFormatter = remember {
+        SimpleDateFormat("MM-dd HH:mm", Locale.CHINA).apply {
+            timeZone = TimeZone.getTimeZone("Asia/Shanghai")
+        }
+    }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        // 1. 添加任务区域：输入框 + 按钮
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            // 输入框
-            OutlinedTextField(
-                value = newTaskTitle,
-                onValueChange = { newTaskTitle = it }, // 实时更新输入文本
-                label = { Text("输入新任务...") },
-                modifier = Modifier.weight(1f), // 占满剩余宽度
-                singleLine = true // 限制单行输入
-            )
-
-            // 添加按钮
-            Button(
-                onClick = {
-                    taskViewModel.addTask(newTaskTitle) // 调用ViewModel添加任务
-                    newTaskTitle = "" // 清空输入框
-                },
-                modifier = Modifier.align(Alignment.CenterVertically)
-            ) {
-                Text("添加")
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp)) // 间距
-
-        // 2. 任务列表标题
+        // 页面标题
         Text(
-            text = "任务列表",
+            text = "每日任务",
             style = MaterialTheme.typography.titleLarge,
-            modifier = Modifier.padding(bottom = 8.dp)
+            modifier = Modifier.padding(bottom = 16.dp)
         )
 
-        // 3. 任务列表（用LazyColumn高效展示长列表）
+        // 预设任务列表（无用户添加区域）
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // 遍历任务列表，为每个任务创建UI项
             items(tasks) { task ->
-                TaskItem(
+                PresetTaskItem(
                     task = task,
-                    onToggleComplete = { taskViewModel.toggleTaskCompletion(task.id) }, // 切换完成状态
-                    onDelete = { taskViewModel.deleteTask(task.id) } // 删除任务
+                    formattedNextRefresh = timeFormatter.format(task.nextRefreshTime),
+                    onComplete = { taskViewModel.completeTask(task.id) }
                 )
             }
         }
