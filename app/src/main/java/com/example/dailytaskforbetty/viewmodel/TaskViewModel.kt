@@ -1,9 +1,11 @@
 // 任务栏类
 
-package com.example.dailytaskforbetty
+package com.example.dailytaskforbetty.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.dailytaskforbetty.model.RewardHistory
+import com.example.dailytaskforbetty.model.Task
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -12,6 +14,7 @@ import java.util.UUID // 用于生成唯一ID
 import kotlin.random.Random
 import java.text.SimpleDateFormat
 import java.util.*
+import kotlin.collections.plus
 
 class TaskViewModel : ViewModel() {
     // 私有可变状态（仅ViewModel内部修改）

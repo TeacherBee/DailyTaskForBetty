@@ -1,6 +1,7 @@
-package com.example.dailytaskforbetty
+package com.example.dailytaskforbetty.viewmodel
 
 import androidx.lifecycle.ViewModel
+import com.example.dailytaskforbetty.model.UserInfo
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow

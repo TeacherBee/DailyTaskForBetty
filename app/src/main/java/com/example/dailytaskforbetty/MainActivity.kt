@@ -34,7 +34,17 @@ import androidx.compose.material3.Icon
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.ShoppingCart
-
+import com.example.dailytaskforbetty.navigation.NavRoutes
+import com.example.dailytaskforbetty.ui.screens.AccountScreen
+import com.example.dailytaskforbetty.ui.screens.MyScreen
+import com.example.dailytaskforbetty.ui.screens.SettingsScreen
+import com.example.dailytaskforbetty.ui.screens.ShopScreen
+import com.example.dailytaskforbetty.ui.screens.TaskItem
+import com.example.dailytaskforbetty.ui.screens.TimeScreen
+import com.example.dailytaskforbetty.ui.screens.UserInfoScreen
+import com.example.dailytaskforbetty.viewmodel.ShopViewModel
+import com.example.dailytaskforbetty.viewmodel.TaskViewModel
+import com.example.dailytaskforbetty.viewmodel.UserViewModel
 
 
 class MainActivity : ComponentActivity() {

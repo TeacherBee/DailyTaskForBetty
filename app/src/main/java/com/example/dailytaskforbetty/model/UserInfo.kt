@@ -1,4 +1,4 @@
-package com.example.dailytaskforbetty
+package com.example.dailytaskforbetty.model
 
 // 个人信息数据类
 data class UserInfo(

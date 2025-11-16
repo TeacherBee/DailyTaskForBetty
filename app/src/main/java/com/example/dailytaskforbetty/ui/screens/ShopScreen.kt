@@ -1,6 +1,5 @@
-package com.example.dailytaskforbetty
+package com.example.dailytaskforbetty.ui.screens
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -17,6 +16,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.foundation.shape.CircleShape
 
 import androidx.compose.ui.tooling.preview.Preview
+import com.example.dailytaskforbetty.model.Product
+import com.example.dailytaskforbetty.viewmodel.ShopViewModel
+import com.example.dailytaskforbetty.viewmodel.TaskViewModel
 import com.example.dailytaskforbetty.ui.theme.DailyTaskForBettyTheme
 
 // 商店页面：展示商品和兑换功能
