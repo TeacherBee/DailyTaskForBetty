@@ -8,5 +8,6 @@ object NavRoutes {
     const val SHOP_SCREEN = "shop_screen" // 商店页面
     const val USER_INFO_SCREEN = "user_info_screen" // 个人信息
     const val ACCOUNT_SCREEN = "account_screen"     // 账户中心
+    const val MY_PRIZES_SCREEN = "my_prizes_screen" // 我的奖品页面
     const val SETTINGS_SCREEN = "settings_screen"   // 设置
 }

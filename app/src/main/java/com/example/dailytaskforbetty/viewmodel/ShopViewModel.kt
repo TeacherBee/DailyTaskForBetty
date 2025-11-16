@@ -2,15 +2,19 @@ package com.example.dailytaskforbetty.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.dailytaskforbetty.model.PrizeStatus
 import com.example.dailytaskforbetty.model.Product
+import com.example.dailytaskforbetty.model.RedeemedPrize
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.*
 import java.util.UUID
 
 class ShopViewModel : ViewModel() {
-    // 商品列表（预先设定初始商品）
+    // 商店商品列表（不变）
     private val _products = MutableStateFlow<List<Product>>(
         listOf(
             Product(
@@ -35,28 +39,49 @@ class ShopViewModel : ViewModel() {
     )
     val products: StateFlow<List<Product>> = _products.asStateFlow()
 
-    // 已兑换奖品列表
-    private val _redeemedProducts = MutableStateFlow<List<Product>>(emptyList())
-    val redeemedProducts: StateFlow<List<Product>> = _redeemedProducts.asStateFlow()
+    // 替换原有_redeemedProducts：存储已兑换奖品（带状态）
+    private val _redeemedPrizes = MutableStateFlow<List<RedeemedPrize>>(emptyList())
+    val redeemedPrizes: StateFlow<List<RedeemedPrize>> = _redeemedPrizes.asStateFlow()
 
-    // 兑换商品：需要传入TaskViewModel（用于修改总奖励）
+    // 兑换商品时：创建带状态的RedeemedPrize（初始状态为“待发货”）
     fun redeemProduct(productId: String, taskViewModel: TaskViewModel) {
         val currentReward = taskViewModel.totalReward.value
+        val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.CHINA).apply {
+            timeZone = TimeZone.getTimeZone("Asia/Shanghai") // 北京时间
+        }
+        val redeemTime = sdf.format(Date())
+
         viewModelScope.launch {
             _products.value = _products.value.map { product ->
-                if (product.id == productId) {
-                    if (product.stock > 0 && currentReward >= product.price) {
-                        val newStock = product.stock - 1
-                        // 调用TaskViewModel减少积分，并传入商品名称（用于记录历史）
-                        taskViewModel.reduceReward(product.price, product.name)
-                        // 记录已兑换奖品
-                        _redeemedProducts.value = _redeemedProducts.value + product.copy(stock = 1) // 标记为已兑换
-                        product.copy(stock = newStock)
-                    } else {
-                        product
-                    }
+                if (product.id == productId && product.stock > 0 && currentReward >= product.price) {
+                    // 1. 库存减1
+                    val newStock = product.stock - 1
+                    // 2. 扣积分（传入商品名用于记录历史）
+                    taskViewModel.reduceReward(product.price, product.name)
+                    // 3. 添加到已兑换奖品列表（初始状态：待发货）
+                    _redeemedPrizes.value = _redeemedPrizes.value + RedeemedPrize(
+                        id = UUID.randomUUID().toString(),
+                        productName = product.name,
+                        productPrice = product.price,
+                        status = PrizeStatus.PENDING_SHIPMENT,
+                        redeemTime = redeemTime
+                    )
+                    product.copy(stock = newStock)
                 } else {
                     product
+                }
+            }
+        }
+    }
+
+    // 确认收货（将状态改为“已收货”）
+    fun confirmReceived(prizeId: String) {
+        viewModelScope.launch {
+            _redeemedPrizes.value = _redeemedPrizes.value.map { prize ->
+                if (prize.id == prizeId) {
+                    prize.copy(status = PrizeStatus.RECEIVED)
+                } else {
+                    prize
                 }
             }
         }

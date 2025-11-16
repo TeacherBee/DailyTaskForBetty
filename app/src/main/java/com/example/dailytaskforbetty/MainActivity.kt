@@ -20,8 +20,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel // 补充viewModel导入
 import com.example.dailytaskforbetty.ui.theme.DailyTaskForBettyTheme
 import androidx.compose.ui.tooling.preview.Preview // 补充Preview导入
-
-// 新增导航相关导入
 import androidx.navigation.NavController
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
@@ -42,6 +40,7 @@ import com.example.dailytaskforbetty.ui.screens.ShopScreen
 import com.example.dailytaskforbetty.ui.screens.TaskItem
 import com.example.dailytaskforbetty.ui.screens.TimeScreen
 import com.example.dailytaskforbetty.ui.screens.UserInfoScreen
+import com.example.dailytaskforbetty.ui.screens.MyPrizesScreen
 import com.example.dailytaskforbetty.viewmodel.ShopViewModel
 import com.example.dailytaskforbetty.viewmodel.TaskViewModel
 import com.example.dailytaskforbetty.viewmodel.UserViewModel
@@ -181,6 +180,13 @@ fun TaskTimeApp() {
                 AccountScreen(
                     navController = navController,
                     taskViewModel = taskViewModel,
+                    shopViewModel = shopViewModel
+                )
+            }
+            // 我的奖品页面
+            composable(NavRoutes.MY_PRIZES_SCREEN) {
+                MyPrizesScreen(
+                    navController = navController,
                     shopViewModel = shopViewModel
                 )
             }
