@@ -1,4 +1,4 @@
-package com.example.dailytaskforbetty
+package com.example.dailytaskforbetty.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope

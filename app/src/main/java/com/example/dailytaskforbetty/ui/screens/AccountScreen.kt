@@ -1,4 +1,4 @@
-package com.example.dailytaskforbetty
+package com.example.dailytaskforbetty.ui.screens
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -7,7 +7,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.Text
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -22,6 +21,10 @@ import androidx.compose.material3.CardDefaults
 import androidx.navigation.compose.rememberNavController
 import com.example.dailytaskforbetty.ui.theme.DailyTaskForBettyTheme
 import androidx.compose.material3.Divider
+import androidx.compose.ui.graphics.Color
+import com.example.dailytaskforbetty.model.RewardHistory
+import com.example.dailytaskforbetty.viewmodel.ShopViewModel
+import com.example.dailytaskforbetty.viewmodel.TaskViewModel
 
 // 账户中心详情页
 @Composable
@@ -135,7 +138,7 @@ private fun HistoryItem(history: RewardHistory) {
         }
         Text(
             text = if (history.type == "获得") "+${history.amount}" else "-${history.amount}",
-            color = if (history.type == "获得") androidx.compose.ui.graphics.Color(0xFF00C853) else androidx.compose.ui.graphics.Color(0xFFD32F2F)
+            color = if (history.type == "获得") Color(0xFF00C853) else Color(0xFFD32F2F)
         )
     }
     Divider() // 分割线

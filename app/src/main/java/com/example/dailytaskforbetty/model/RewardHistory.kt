@@ -1,4 +1,4 @@
-package com.example.dailytaskforbetty
+package com.example.dailytaskforbetty.model
 
 // 积分历史记录（获得/消耗积分的原因和时间）
 data class RewardHistory(

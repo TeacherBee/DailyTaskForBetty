@@ -1,6 +1,6 @@
 // 任务列表页面组件
 
-package com.example.dailytaskforbetty
+package com.example.dailytaskforbetty.ui.screens
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
@@ -16,6 +16,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.dailytaskforbetty.model.Task
+import com.example.dailytaskforbetty.viewmodel.TaskViewModel
 
 // 任务列表页面组件
 @Composable

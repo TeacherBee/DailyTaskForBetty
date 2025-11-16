@@ -1,4 +1,4 @@
-package com.example.dailytaskforbetty
+package com.example.dailytaskforbetty.ui.screens
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Text
@@ -11,10 +11,8 @@ import androidx.navigation.NavController
 import androidx.compose.foundation.clickable         // clickable
 import androidx.compose.material3.MaterialTheme     // MaterialTheme
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.material3.CardDefaults
 import androidx.navigation.compose.rememberNavController
 import androidx.compose.ui.Alignment.Companion.CenterHorizontally
-import androidx.compose.ui.Alignment.Companion.CenterVertically
 import com.example.dailytaskforbetty.ui.theme.DailyTaskForBettyTheme
 
 // 设置页面（示例，可扩展功能）
@@ -43,7 +41,7 @@ fun SettingsScreen(navController: NavController) {
 
         Text(
             text = "功能开发中...",
-            modifier = Modifier.align(androidx.compose.ui.Alignment.Companion.CenterHorizontally)
+            modifier = Modifier.align(CenterHorizontally)
         )
     }
 }

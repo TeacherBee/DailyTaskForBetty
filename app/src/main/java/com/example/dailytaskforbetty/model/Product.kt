@@ -1,4 +1,4 @@
-package com.example.dailytaskforbetty
+package com.example.dailytaskforbetty.model
 
 // 商品数据类：ID、名称、价格（需要的积分）、库存
 data class Product(

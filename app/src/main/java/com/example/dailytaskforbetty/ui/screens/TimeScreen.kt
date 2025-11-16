@@ -1,6 +1,6 @@
 // 时间页面组件
 
-package com.example.dailytaskforbetty
+package com.example.dailytaskforbetty.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -16,6 +16,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.runtime.getValue
 import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.unit.dp
+import com.example.dailytaskforbetty.viewmodel.TimeViewModel
 
 // 时间页面组件
 @Composable

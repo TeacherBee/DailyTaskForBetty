@@ -1,6 +1,4 @@
-// app 底部导航路由
-
-package com.example.dailytaskforbetty
+package com.example.dailytaskforbetty.navigation
 
 // 定义两个页面的路由（字符串标识）
 object NavRoutes {

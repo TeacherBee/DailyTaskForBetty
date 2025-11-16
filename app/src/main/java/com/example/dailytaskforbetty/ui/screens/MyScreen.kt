@@ -1,6 +1,5 @@
-package com.example.dailytaskforbetty
+package com.example.dailytaskforbetty.ui.screens
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -24,6 +23,9 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.compose.rememberNavController
+import com.example.dailytaskforbetty.viewmodel.TaskViewModel
+import com.example.dailytaskforbetty.viewmodel.UserViewModel
+import com.example.dailytaskforbetty.navigation.NavRoutes
 
 import com.example.dailytaskforbetty.ui.theme.DailyTaskForBettyTheme
 
