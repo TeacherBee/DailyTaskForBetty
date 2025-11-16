@@ -35,7 +35,7 @@ fun AccountScreen(
 ) {
     val totalReward by taskViewModel.totalReward.collectAsState()
     val rewardHistories by taskViewModel.rewardHistories.collectAsState()
-    val redeemedProducts by shopViewModel.redeemedProducts.collectAsState()
+    val redeemedPrizes by shopViewModel.redeemedPrizes.collectAsState()
 
     Column(
         modifier = Modifier
@@ -86,32 +86,6 @@ fun AccountScreen(
                 LazyColumn(modifier = Modifier.fillMaxWidth()) {
                     items(rewardHistories.reversed()) { history -> // 倒序显示（最新的在前）
                         HistoryItem(history = history)
-                    }
-                }
-            }
-        }
-
-        // 已兑换奖品
-        Text(
-            text = "已兑换奖品",
-            style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.padding(vertical = 8.dp)
-        )
-        Card(modifier = Modifier.fillMaxWidth()) {
-            if (redeemedProducts.isEmpty()) {
-                Text(
-                    text = "暂无兑换记录",
-                    modifier = Modifier.padding(16.dp),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            } else {
-                LazyColumn(modifier = Modifier.fillMaxWidth()) {
-                    items(redeemedProducts) { product ->
-                        Text(
-                            text = product.name,
-                            modifier = Modifier.padding(16.dp)
-                        )
-                        Divider() // 分割线
                     }
                 }
             }

@@ -23,10 +23,10 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.compose.rememberNavController
+import androidx.compose.material.icons.filled.AccountBalance // 账户余额图标
 import com.example.dailytaskforbetty.viewmodel.TaskViewModel
 import com.example.dailytaskforbetty.viewmodel.UserViewModel
 import com.example.dailytaskforbetty.navigation.NavRoutes
-
 import com.example.dailytaskforbetty.ui.theme.DailyTaskForBettyTheme
 
 
@@ -84,7 +84,7 @@ fun MyScreen(
         }
 
         // 栏目列表：个人信息、账户、其他
-        items(3) { index ->
+        items(4) { index ->
             when (index) {
                 0 -> MyScreenItem(
                     icon = Icons.Default.AccountCircle,
@@ -95,14 +95,21 @@ fun MyScreen(
                     navController.navigate(NavRoutes.USER_INFO_SCREEN)
                 }
                 1 -> MyScreenItem(
-                    icon = Icons.Default.CardGiftcard,
+                    icon = Icons.Default.AccountBalance,
                     title = "账户中心",
                     description = "积分、历史、已兑换奖品"
                 ) {
                     // 点击跳转到账户详情页
                     navController.navigate(NavRoutes.ACCOUNT_SCREEN)
                 }
-                2 -> MyScreenItem(
+                2 -> MyScreenItem( // 新增：我的奖品
+                    icon = Icons.Default.CardGiftcard,
+                    title = "我的奖品",
+                    description = "已兑换奖品及物流状态"
+                ) {
+                    navController.navigate(NavRoutes.MY_PRIZES_SCREEN)
+                }
+                3 -> MyScreenItem(
                     icon = Icons.Default.Settings,
                     title = "设置",
                     description = "其他功能设置"
