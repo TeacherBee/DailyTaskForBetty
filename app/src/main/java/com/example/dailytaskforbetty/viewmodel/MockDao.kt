@@ -93,3 +93,46 @@ class MockRedeemedPrizeDao : RedeemedPrizeDao {
     // 模拟更新已兑换奖品（空实现，预览无需实际存储）
     override suspend fun updateRedeemedPrize(entity: RedeemedPrizeEntity) {}
 }
+
+class MockProductDao : ProductDao {
+    // 模拟商品数据（预设库存）
+    private val mockProducts = listOf(
+        Product(
+            id = "mock_product1",
+            name = "笔记本",
+            price = 5,
+            stock = 3  // 模拟初始库存
+        ).toEntity(),
+        Product(
+            id = "mock_product2",
+            name = "钢笔",
+            price = 8,
+            stock = 2
+        ).toEntity(),
+        Product(
+            id = "mock_product3",
+            name = "书签",
+            price = 3,
+            stock = 5
+        ).toEntity()
+    )
+
+    // 模拟观察商品列表（返回预设数据）
+    override fun observeAllProducts(): Flow<List<ProductEntity>> {
+        return flowOf(mockProducts)
+    }
+
+    // 模拟更新商品（空实现，预览不实际修改）
+    override suspend fun updateProduct(product: ProductEntity) {}
+
+    // 模拟根据ID获取商品（从预设列表中查找）
+    override suspend fun getProductById(id: String): ProductEntity? {
+        return mockProducts.find { it.id == id }
+    }
+
+    // 模拟清空商品（空实现）
+    override suspend fun clearAllProducts() {}
+
+    // 模拟批量插入商品（空实现）
+    override suspend fun insertProducts(products: List<ProductEntity>) {}
+}
