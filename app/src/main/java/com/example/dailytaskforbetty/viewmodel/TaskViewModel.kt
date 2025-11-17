@@ -16,7 +16,6 @@ import java.util.*
 import kotlin.collections.plus
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.delay
-import androidx.lifecycle.SharingStarted
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.first
@@ -28,13 +27,8 @@ class TaskViewModel(
     private val taskDao: TaskDao
 ) : ViewModel() {
     // 任务列表：从数据库获取并转换为Task对象（替代原有的内存列表）
-    val tasks: StateFlow<List<Task>> = taskDao.observeAllTasks()
-        .map { entities -> entities.map { it.toTask() } }
-        .stateIn<List<Task>>(  // 显式指定类型为List<Task>
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = emptyList()
-        )
+    private val _tasks = MutableStateFlow<List<Task>>(emptyList())
+    val tasks: StateFlow<List<Task>> = _tasks
 
     // 总奖励状态（累计完成任务的奖励）
     private val _totalReward = MutableStateFlow(0)
@@ -48,6 +42,12 @@ class TaskViewModel(
         startAutoRefreshChecker()
         loadTotalReward()
         loadInitialTasks()
+        // ➜ 手动收集任务
+        viewModelScope.launch {
+            taskDao.observeAllTasks()
+                .map { list -> list.map { it.toTask() } }
+                .collect { _tasks.value = it }
+        }
     }
 
     // 自动刷新检查：每分钟检查一次是否有任务需要刷新
