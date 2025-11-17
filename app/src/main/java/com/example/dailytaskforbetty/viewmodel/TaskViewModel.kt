@@ -4,12 +4,10 @@ package com.example.dailytaskforbetty.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.dailytaskforbetty.model.RewardHistory
-import com.example.dailytaskforbetty.model.Task
-import com.example.dailytaskforbetty.model.TaskCycle
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import java.util.UUID // 用于生成唯一ID
 import kotlin.random.Random
@@ -18,8 +16,10 @@ import java.util.*
 import kotlin.collections.plus
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.delay
+import com.example.dailytaskforbetty.model.*
+import com.example.dailytaskforbetty.data.*
 
-class TaskViewModel : ViewModel() {
+class TaskViewModel(private val rewardDao: RewardDao) : ViewModel() {
     // 预设任务列表（初始化时计算下次刷新时间）
     private val _tasks = MutableStateFlow<List<Task>>(
         listOf(
@@ -61,13 +61,20 @@ class TaskViewModel : ViewModel() {
     private val _totalReward = MutableStateFlow(0)
     val totalReward: StateFlow<Int> = _totalReward.asStateFlow()
 
-    // 积分历史列表
-    private val _rewardHistories = MutableStateFlow<List<RewardHistory>>(emptyList())
-    val rewardHistories: StateFlow<List<RewardHistory>> = _rewardHistories.asStateFlow()
+    // 积分历史列表, 直接使用Dao的Flow（数据库数据变化时自动更新UI）
+    val rewardHistories: Flow<List<RewardHistory>> = rewardDao.getRewardHistories()
 
     // 初始化时启动自动刷新检查（每分钟检查一次）
     init {
         startAutoRefreshChecker()
+        // 从数据库加载总积分
+        viewModelScope.launch {
+            // 调用Dao的getTotalRewardFlow()获取Flow，然后collect（收集）它
+            rewardDao.getTotalRewardFlow().collect { savedTotal ->
+                // 每当数据库中总积分变化时，这里会自动触发
+                _totalReward.value = savedTotal?.amount ?: 0 // 赋值给状态流
+            }
+        }
     }
 
     // 自动刷新检查：每分钟检查一次是否有任务需要刷新
@@ -110,18 +117,25 @@ class TaskViewModel : ViewModel() {
         viewModelScope.launch {
             _tasks.value = _tasks.value.map { task ->
                 if (task.id == taskId && !task.isCompleted) {
-                    // 累加奖励
-                    _totalReward.value += task.reward
-                    // 记录积分历史
+                    // 1. 计算新积分
+                    val newTotal = _totalReward.value + task.reward
+                    _totalReward.value = newTotal
+
+                    // 2. 保存总积分到数据库（新增）
+                    val totalEntity = TotalReward(amount = newTotal)
+                    rewardDao.insertOrReplaceTotalReward(totalEntity)
+
+                    // 3. 记录积分历史到数据库（新增）
                     val timeStr = formatTime(currentTime)
-                    _rewardHistories.value = _rewardHistories.value + RewardHistory(
-                        id = UUID.randomUUID().toString(),
+                    val history = RewardHistory(
                         type = "获得",
                         amount = task.reward,
                         reason = "完成任务：${task.title}",
                         time = timeStr
                     )
-                    // 更新任务状态：标记完成，记录完成时间，计算下次刷新
+                    rewardDao.insertRewardHistory(history)
+
+                    // 4. 更新任务状态：标记完成，记录完成时间，计算下次刷新
                     task.copy(
                         isCompleted = true,
                         lastCompletedTime = currentTime,
@@ -171,33 +185,6 @@ class TaskViewModel : ViewModel() {
         }.format(date)
     }
 
-    // 切换任务的完成状态（根据ID找到任务，反转isCompleted）
-    fun toggleTaskCompletion(taskId: String) {
-        viewModelScope.launch {
-            _tasks.value = _tasks.value.map { task ->
-                if (task.id == taskId && !task.isCompleted) {
-                    _totalReward.value += task.reward
-
-                    // 设置时区为北京时间
-                    val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.CHINA)
-                    sdf.timeZone = TimeZone.getTimeZone("Asia/Shanghai") // 显式指定北京时间时区
-                    val time = sdf.format(Date())
-
-                    _rewardHistories.value = _rewardHistories.value + RewardHistory(
-                        id = UUID.randomUUID().toString(),
-                        type = "获得",
-                        amount = task.reward,
-                        reason = "完成任务：${task.title}",
-                        time = time
-                    )
-                    task.copy(isCompleted = true)
-                } else {
-                    task
-                }
-            }
-        }
-    }
-
     // 删除任务（根据ID过滤掉要删除的任务）
     fun deleteTask(taskId: String) {
         viewModelScope.launch {
@@ -208,20 +195,22 @@ class TaskViewModel : ViewModel() {
     // 减少总奖励（供商店兑换使用）
     fun reduceReward(amount: Int, productName: String) {
         viewModelScope.launch {
-            _totalReward.value = _totalReward.value - amount
+            val newTotal = _totalReward.value - amount
+            _totalReward.value = newTotal
 
-            // 设置时区为北京时间
-            val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.CHINA)
-            sdf.timeZone = TimeZone.getTimeZone("Asia/Shanghai")
-            val time = sdf.format(Date())
+            // 直接插入或替换（无需判断）
+            val totalEntity = TotalReward(amount = newTotal)
+            rewardDao.insertOrReplaceTotalReward(totalEntity)
 
-            _rewardHistories.value = _rewardHistories.value + RewardHistory(
-                id = UUID.randomUUID().toString(),
+            // 记录积分消耗历史到数据库
+            val timeStr = formatTime(getBeijingTime())
+            val history = RewardHistory(
                 type = "消耗",
                 amount = amount,
                 reason = "兑换：$productName",
-                time = time
+                time = timeStr
             )
+            rewardDao.insertRewardHistory(history)
         }
     }
 }

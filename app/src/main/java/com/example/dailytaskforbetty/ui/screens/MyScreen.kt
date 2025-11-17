@@ -24,8 +24,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.compose.rememberNavController
 import androidx.compose.material.icons.filled.AccountBalance // 账户余额图标
-import com.example.dailytaskforbetty.viewmodel.TaskViewModel
-import com.example.dailytaskforbetty.viewmodel.UserViewModel
+import com.example.dailytaskforbetty.viewmodel.*
 import com.example.dailytaskforbetty.navigation.NavRoutes
 import com.example.dailytaskforbetty.ui.theme.DailyTaskForBettyTheme
 
@@ -172,11 +171,18 @@ private fun MyScreenItem(
 @Composable
 fun MyScreenPreview() {
     DailyTaskForBettyTheme {
-        // 预览时传入空导航（实际运行时由导航控制器传入）
+        // 1. 创建模拟的Dao
+        val mockRewardDao = MockRewardDao()
+        // 2. 用模拟Dao创建TaskViewModel
+        val previewTaskViewModel = TaskViewModel(rewardDao = mockRewardDao)
+        // 3. 如果UserViewModel有构造参数，也用模拟数据创建（这里假设它无参）
+        val previewUserViewModel = UserViewModel()
+
+        // 4. 传入预览ViewModel
         MyScreen(
             navController = rememberNavController(),
-            taskViewModel = TaskViewModel(),
-            userViewModel = UserViewModel()
+            taskViewModel = previewTaskViewModel, // 使用带模拟Dao的ViewModel
+            userViewModel = previewUserViewModel
         )
     }
 }

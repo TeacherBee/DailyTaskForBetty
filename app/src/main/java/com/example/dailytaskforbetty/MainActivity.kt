@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel // 补充viewModel导入
 import com.example.dailytaskforbetty.ui.theme.DailyTaskForBettyTheme
 import androidx.compose.ui.tooling.preview.Preview // 补充Preview导入
+import android.content.Context
 import androidx.navigation.NavController
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
@@ -35,17 +36,8 @@ import androidx.compose.material.icons.filled.ShoppingCart
 import java.text.SimpleDateFormat
 import java.util.*
 import com.example.dailytaskforbetty.navigation.NavRoutes
-import com.example.dailytaskforbetty.ui.screens.AccountScreen
-import com.example.dailytaskforbetty.ui.screens.MyScreen
-import com.example.dailytaskforbetty.ui.screens.SettingsScreen
-import com.example.dailytaskforbetty.ui.screens.ShopScreen
-import com.example.dailytaskforbetty.ui.screens.TimeScreen
-import com.example.dailytaskforbetty.ui.screens.PresetTaskItem
-import com.example.dailytaskforbetty.ui.screens.UserInfoScreen
-import com.example.dailytaskforbetty.ui.screens.MyPrizesScreen
-import com.example.dailytaskforbetty.viewmodel.ShopViewModel
-import com.example.dailytaskforbetty.viewmodel.TaskViewModel
-import com.example.dailytaskforbetty.viewmodel.UserViewModel
+import com.example.dailytaskforbetty.ui.screens.*
+import com.example.dailytaskforbetty.viewmodel.*
 
 
 class MainActivity : ComponentActivity() {
@@ -57,7 +49,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    TaskTimeApp()  // 入口：展示任务列表和添加区域
+                    TaskTimeApp(context = this@MainActivity)  // 入口：展示任务列表和添加区域
                 }
             }
         }
@@ -106,10 +98,11 @@ fun TaskApp(
 }
 
 @Composable
-fun TaskTimeApp() {
+fun TaskTimeApp(context: Context) {
     val navController = rememberNavController() // 导航控制器
     // 创建全局共享的TaskViewModel（与导航控制器关联）
-    val taskViewModel: TaskViewModel = viewModel() // 共享的任务ViewModel
+    val viewModelFactory = ViewModelFactory(context)
+    val taskViewModel: TaskViewModel = viewModel(factory = viewModelFactory)
     val shopViewModel: ShopViewModel = viewModel() // 商店ViewModel
     val userViewModel: UserViewModel = viewModel() // 个人信息ViewModel
 
@@ -244,7 +237,8 @@ private data class NavigationItem(
 @Preview(showBackground = true)
 @Composable
 fun TaskAppPreview() {
-    DailyTaskForBettyTheme {
-        TaskApp( taskViewModel = TaskViewModel())
-    }
+    // 预览时使用模拟的Dao创建ViewModel，解决参数缺失问题
+    val mockDao = MockRewardDao()
+    val previewViewModel = TaskViewModel(rewardDao = mockDao)
+    TaskApp(taskViewModel = previewViewModel)
 }

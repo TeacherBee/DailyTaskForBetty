@@ -17,8 +17,7 @@ import androidx.compose.foundation.shape.CircleShape
 
 import androidx.compose.ui.tooling.preview.Preview
 import com.example.dailytaskforbetty.model.Product
-import com.example.dailytaskforbetty.viewmodel.ShopViewModel
-import com.example.dailytaskforbetty.viewmodel.TaskViewModel
+import com.example.dailytaskforbetty.viewmodel.*
 import com.example.dailytaskforbetty.ui.theme.DailyTaskForBettyTheme
 
 // 商店页面：展示商品和兑换功能
@@ -153,10 +152,15 @@ private fun ProductItem(
 @Preview(showBackground = true)
 @Composable
 fun ShopScreenPreview() {
+    // 1. 创建模拟的Dao
+    val mockRewardDao = MockRewardDao()
+    // 2. 用模拟Dao创建TaskViewModel
+    val previewTaskViewModel = TaskViewModel(rewardDao = mockRewardDao)
+
     DailyTaskForBettyTheme {
         ShopScreen(
             shopViewModel = ShopViewModel(),
-            taskViewModel = TaskViewModel()
+            taskViewModel = previewTaskViewModel
         )
     }
 }

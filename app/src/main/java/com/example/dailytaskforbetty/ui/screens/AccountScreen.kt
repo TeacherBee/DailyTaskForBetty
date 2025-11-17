@@ -34,7 +34,7 @@ fun AccountScreen(
     shopViewModel: ShopViewModel = viewModel()
 ) {
     val totalReward by taskViewModel.totalReward.collectAsState()
-    val rewardHistories by taskViewModel.rewardHistories.collectAsState()
+    val rewardHistories by taskViewModel.rewardHistories.collectAsState(initial = emptyList())
     val redeemedPrizes by shopViewModel.redeemedPrizes.collectAsState()
 
     Column(

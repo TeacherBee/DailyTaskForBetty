@@ -1,10 +1,15 @@
+// RewardHistory.kt
 package com.example.dailytaskforbetty.model
 
-// 积分历史记录（获得/消耗积分的原因和时间）
+import androidx.room.Entity
+import androidx.room.PrimaryKey
+import java.util.UUID
+
+@Entity(tableName = "reward_history")
 data class RewardHistory(
-    val id: String,
+    @PrimaryKey val id: String = UUID.randomUUID().toString(),
     val type: String, // "获得" 或 "消耗"
     val amount: Int, // 积分数量
-    val reason: String, // 原因（如“完成任务：买牛奶”或“兑换：笔记本”）
-    val time: String // 时间（格式：yyyy-MM-dd HH:mm）
+    val reason: String,
+    val time: String // 格式：yyyy-MM-dd HH:mm
 )
