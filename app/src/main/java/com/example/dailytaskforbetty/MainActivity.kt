@@ -238,7 +238,11 @@ private data class NavigationItem(
 @Composable
 fun TaskAppPreview() {
     // 预览时使用模拟的Dao创建ViewModel，解决参数缺失问题
-    val mockDao = MockRewardDao()
-    val previewViewModel = TaskViewModel(rewardDao = mockDao)
+    val mockRewardDao = MockRewardDao()
+    val mockTaskDao = MockTaskDao()
+    val previewViewModel = TaskViewModel(
+        rewardDao = mockRewardDao,
+        taskDao = mockTaskDao
+    )
     TaskApp(taskViewModel = previewViewModel)
 }

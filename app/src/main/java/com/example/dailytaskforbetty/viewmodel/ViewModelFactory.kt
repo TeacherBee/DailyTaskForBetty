@@ -12,7 +12,10 @@ class ViewModelFactory(private val context: Context) : ViewModelProvider.Factory
         if (modelClass.isAssignableFrom(TaskViewModel::class.java)) {
             // 从Application中获取数据库实例，再获取Dao
             val database = (context.applicationContext as MyApplication).database
-            return TaskViewModel(database.rewardDao()) as T
+            return TaskViewModel(
+                database.rewardDao(),
+                taskDao = database.taskDao()
+            ) as T
         }
         throw IllegalArgumentException("未知的ViewModel类")
     }
