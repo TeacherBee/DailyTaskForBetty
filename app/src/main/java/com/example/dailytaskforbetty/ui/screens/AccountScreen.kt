@@ -35,7 +35,7 @@ fun AccountScreen(
 ) {
     val totalReward by taskViewModel.totalReward.collectAsState()
     val rewardHistories by taskViewModel.rewardHistories.collectAsState(initial = emptyList())
-    val redeemedPrizes by shopViewModel.redeemedPrizes.collectAsState()
+    val redeemedPrizes by shopViewModel.redeemedPrizes.collectAsState(initial = emptyList())
 
     Column(
         modifier = Modifier

@@ -103,7 +103,7 @@ fun TaskTimeApp(context: Context) {
     // 创建全局共享的TaskViewModel（与导航控制器关联）
     val viewModelFactory = ViewModelFactory(context)
     val taskViewModel: TaskViewModel = viewModel(factory = viewModelFactory)
-    val shopViewModel: ShopViewModel = viewModel() // 商店ViewModel
+    val shopViewModel: ShopViewModel = viewModel(factory = viewModelFactory) // 商店ViewModel
     val userViewModel: UserViewModel = viewModel() // 个人信息ViewModel
 
     // 使用Scaffold布局，底部放导航栏
