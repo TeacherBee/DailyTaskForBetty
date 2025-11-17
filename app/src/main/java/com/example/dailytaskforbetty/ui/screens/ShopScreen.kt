@@ -157,13 +157,16 @@ fun ShopScreenPreview() {
     val mockRewardDao = MockRewardDao()
     val mockTaskDao = MockTaskDao()
     val mockRedeemedPrizeDao = MockRedeemedPrizeDao()
+    val mockProductDao = MockProductDao()
     // 2. 用模拟Dao创建TaskViewModel
     val previewTaskViewModel = TaskViewModel(
         rewardDao = mockRewardDao,
         taskDao = mockTaskDao
     )
     val previewShopViewModel = ShopViewModel(
-        redeemedPrizeDao = mockRedeemedPrizeDao
+        redeemedPrizeDao = mockRedeemedPrizeDao,
+        productDao = mockProductDao
+
     )
 
     DailyTaskForBettyTheme {

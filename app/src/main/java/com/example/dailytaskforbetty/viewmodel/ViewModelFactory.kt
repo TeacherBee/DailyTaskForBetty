@@ -21,7 +21,8 @@ class ViewModelFactory(private val context: Context) : ViewModelProvider.Factory
         // 新增：支持ShopViewModel
         else if (modelClass.isAssignableFrom(ShopViewModel::class.java)) {
             return ShopViewModel(
-                redeemedPrizeDao = database.redeemedPrizeDao()
+                redeemedPrizeDao = database.redeemedPrizeDao(),
+                productDao = database.productDao()
             ) as T
         }
 
