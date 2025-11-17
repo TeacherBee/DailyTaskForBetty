@@ -16,46 +16,25 @@ import java.util.*
 import kotlin.collections.plus
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.delay
+import androidx.lifecycle.SharingStarted
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.first
 import com.example.dailytaskforbetty.model.*
 import com.example.dailytaskforbetty.data.*
 
-class TaskViewModel(private val rewardDao: RewardDao) : ViewModel() {
-    // 预设任务列表（初始化时计算下次刷新时间）
-    private val _tasks = MutableStateFlow<List<Task>>(
-        listOf(
-            // 任务1：喝水（每天刷新，奖励5积分）
-            Task(
-                id = "task_drink",
-                title = "喝水",
-                isCompleted = false,
-                reward = 5,
-                cycle = TaskCycle.DAILY,
-                lastCompletedTime = null,
-                nextRefreshTime = calculateNextRefreshTime(TaskCycle.DAILY, null)
-            ),
-            // 任务2：运动（每周刷新，奖励15积分）
-            Task(
-                id = "task_exercise",
-                title = "运动",
-                isCompleted = false,
-                reward = 15,
-                cycle = TaskCycle.WEEKLY,
-                lastCompletedTime = null,
-                nextRefreshTime = calculateNextRefreshTime(TaskCycle.WEEKLY, null)
-            ),
-            // 可添加更多预设任务...
-            Task(
-                id = "task_read",
-                title = "阅读",
-                isCompleted = false,
-                reward = 8,
-                cycle = TaskCycle.DAILY,
-                lastCompletedTime = null,
-                nextRefreshTime = calculateNextRefreshTime(TaskCycle.DAILY, null)
-            )
+class TaskViewModel(
+    private val rewardDao: RewardDao,
+    private val taskDao: TaskDao
+) : ViewModel() {
+    // 任务列表：从数据库获取并转换为Task对象（替代原有的内存列表）
+    val tasks: StateFlow<List<Task>> = taskDao.observeAllTasks()
+        .map { entities -> entities.map { it.toTask() } }
+        .stateIn<List<Task>>(  // 显式指定类型为List<Task>
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
         )
-    )
-    val tasks: StateFlow<List<Task>> = _tasks.asStateFlow()
 
     // 总奖励状态（累计完成任务的奖励）
     private val _totalReward = MutableStateFlow(0)
@@ -67,14 +46,8 @@ class TaskViewModel(private val rewardDao: RewardDao) : ViewModel() {
     // 初始化时启动自动刷新检查（每分钟检查一次）
     init {
         startAutoRefreshChecker()
-        // 从数据库加载总积分
-        viewModelScope.launch {
-            // 调用Dao的getTotalRewardFlow()获取Flow，然后collect（收集）它
-            rewardDao.getTotalRewardFlow().collect { savedTotal ->
-                // 每当数据库中总积分变化时，这里会自动触发
-                _totalReward.value = savedTotal?.amount ?: 0 // 赋值给状态流
-            }
-        }
+        loadTotalReward()
+        loadInitialTasks()
     }
 
     // 自动刷新检查：每分钟检查一次是否有任务需要刷新
@@ -92,12 +65,61 @@ class TaskViewModel(private val rewardDao: RewardDao) : ViewModel() {
         }
     }
 
+    // 从数据库加载总积分
+    private fun loadTotalReward() {
+        viewModelScope.launch {
+            rewardDao.getTotalRewardFlow().collect { savedTotal ->
+                _totalReward.value = savedTotal?.amount ?: 0
+            }
+        }
+    }
+
+    // 初始化任务：若数据库为空则插入预设任务
+    private fun loadInitialTasks() {
+        viewModelScope.launch {
+            val existingTasks = taskDao.observeAllTasks().first()  // 获取当前数据库任务
+            if (existingTasks.isEmpty()) {
+                // 插入预设任务（转换为Entity）
+                val initialTasks = listOf(
+                    Task(
+                        id = "task_drink",
+                        title = "喝水",
+                        isCompleted = false,
+                        reward = 5,
+                        cycle = TaskCycle.DAILY,
+                        lastCompletedTime = null,
+                        nextRefreshTime = calculateNextRefreshTime(TaskCycle.DAILY, null)
+                    ),
+                    Task(
+                        id = "task_exercise",
+                        title = "运动",
+                        isCompleted = false,
+                        reward = 15,
+                        cycle = TaskCycle.WEEKLY,
+                        lastCompletedTime = null,
+                        nextRefreshTime = calculateNextRefreshTime(TaskCycle.WEEKLY, null)
+                    ),
+                    Task(
+                        id = "task_read",
+                        title = "阅读",
+                        isCompleted = false,
+                        reward = 8,
+                        cycle = TaskCycle.DAILY,
+                        lastCompletedTime = null,
+                        nextRefreshTime = calculateNextRefreshTime(TaskCycle.DAILY, null)
+                    )
+                ).map { it.toEntity() }  // 转换为Entity
+
+                taskDao.upsertTasks(initialTasks)  // 批量插入数据库
+            }
+        }
+    }
+
     // 检查并刷新任务（基于当前北京时间）
     fun checkAndRefreshTasks() {
-        val currentTime = getBeijingTime() // 获取当前北京时间
+        val currentTime = getBeijingTime()
         viewModelScope.launch {
-            _tasks.value = _tasks.value.map { task ->
-                // 若当前时间已过下次刷新时间，重置任务状态
+            val updatedTasks = tasks.value.map { task ->
                 if (currentTime.after(task.nextRefreshTime)) {
                     task.copy(
                         isCompleted = false,
@@ -108,6 +130,8 @@ class TaskViewModel(private val rewardDao: RewardDao) : ViewModel() {
                     task
                 }
             }
+            // 同步更新到数据库
+            taskDao.upsertTasks(updatedTasks.map { it.toEntity() })
         }
     }
 
@@ -115,38 +139,34 @@ class TaskViewModel(private val rewardDao: RewardDao) : ViewModel() {
     fun completeTask(taskId: String) {
         val currentTime = getBeijingTime()
         viewModelScope.launch {
-            _tasks.value = _tasks.value.map { task ->
-                if (task.id == taskId && !task.isCompleted) {
-                    // 1. 计算新积分
-                    val newTotal = _totalReward.value + task.reward
-                    _totalReward.value = newTotal
+            val targetTask = tasks.value.find { it.id == taskId && !it.isCompleted }
+            if (targetTask != null) {
+                // 1. 更新积分
+                val newTotal = _totalReward.value + targetTask.reward
+                _totalReward.value = newTotal
+                rewardDao.insertOrReplaceTotalReward(TotalReward(amount = newTotal))
 
-                    // 2. 保存总积分到数据库（新增）
-                    val totalEntity = TotalReward(amount = newTotal)
-                    rewardDao.insertOrReplaceTotalReward(totalEntity)
+                // 2. 记录积分历史
+                val timeStr = formatTime(currentTime)
+                val history = RewardHistory(
+                    type = "获得",
+                    amount = targetTask.reward,
+                    reason = "完成任务：${targetTask.title}",
+                    time = timeStr
+                )
+                rewardDao.insertRewardHistory(history)
 
-                    // 3. 记录积分历史到数据库（新增）
-                    val timeStr = formatTime(currentTime)
-                    val history = RewardHistory(
-                        type = "获得",
-                        amount = task.reward,
-                        reason = "完成任务：${task.title}",
-                        time = timeStr
-                    )
-                    rewardDao.insertRewardHistory(history)
-
-                    // 4. 更新任务状态：标记完成，记录完成时间，计算下次刷新
-                    task.copy(
-                        isCompleted = true,
-                        lastCompletedTime = currentTime,
-                        nextRefreshTime = calculateNextRefreshTime(task.cycle, currentTime)
-                    )
-                } else {
-                    task
-                }
+                // 3. 更新任务状态并同步到数据库
+                val updatedTask = targetTask.copy(
+                    isCompleted = true,
+                    lastCompletedTime = currentTime,
+                    nextRefreshTime = calculateNextRefreshTime(targetTask.cycle, currentTime)
+                )
+                taskDao.upsertTask(updatedTask.toEntity())  // 单个任务更新
             }
         }
     }
+
 
     // 计算下次刷新时间（核心逻辑）
     private fun calculateNextRefreshTime(cycle: TaskCycle, lastCompletedTime: Date?): Date {
@@ -188,7 +208,9 @@ class TaskViewModel(private val rewardDao: RewardDao) : ViewModel() {
     // 删除任务（根据ID过滤掉要删除的任务）
     fun deleteTask(taskId: String) {
         viewModelScope.launch {
-            _tasks.value = _tasks.value.filter { it.id != taskId }
+            tasks.value.find { it.id == taskId }?.let {
+                taskDao.deleteTask(it.toEntity())  // 转换为Entity后删除
+            }
         }
     }
 
