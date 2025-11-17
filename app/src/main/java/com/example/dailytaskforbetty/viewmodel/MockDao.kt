@@ -5,6 +5,8 @@ import com.example.dailytaskforbetty.model.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import java.util.Date
+import java.text.SimpleDateFormat
+import java.util.*
 
 class MockRewardDao : RewardDao {
     // 模拟总积分Flow（返回100作为示例）
@@ -56,4 +58,38 @@ class MockTaskDao : TaskDao {
     override suspend fun upsertTasks(tasks: List<TaskEntity>) {}
     override suspend fun deleteTask(task: TaskEntity) {}
     override suspend fun clearAllTasks() {}
+}
+
+class MockRedeemedPrizeDao : RedeemedPrizeDao {
+    // 模拟已兑换奖品数据
+    override fun observeAllRedeemedPrizes(): Flow<List<RedeemedPrizeEntity>> {
+        // 生成模拟时间（当前时间格式化）
+        val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.CHINA)
+        val mockTime = sdf.format(Date())
+
+        // 模拟已兑换奖品列表
+        val mockEntities = listOf(
+            RedeemedPrizeEntity(
+                id = UUID.randomUUID().toString(),
+                productName = "笔记本",
+                productPrice = 5,
+                status = PrizeStatus.PENDING_SHIPMENT.name,
+                redeemTime = mockTime
+            ),
+            RedeemedPrizeEntity(
+                id = UUID.randomUUID().toString(),
+                productName = "钢笔",
+                productPrice = 8,
+                status = PrizeStatus.RECEIVED.name,
+                redeemTime = sdf.format(Date(System.currentTimeMillis() - 86400000)) // 昨天的时间
+            )
+        )
+        return flowOf(mockEntities)
+    }
+
+    // 模拟插入已兑换奖品（空实现，预览无需实际存储）
+    override suspend fun insertRedeemedPrize(entity: RedeemedPrizeEntity) {}
+
+    // 模拟更新已兑换奖品（空实现，预览无需实际存储）
+    override suspend fun updateRedeemedPrize(entity: RedeemedPrizeEntity) {}
 }

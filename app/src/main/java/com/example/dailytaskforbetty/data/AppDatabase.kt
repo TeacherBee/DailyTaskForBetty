@@ -11,15 +11,17 @@ import com.example.dailytaskforbetty.model.*
     entities = [
         TotalReward::class,
         RewardHistory::class,
-        TaskEntity::class
+        TaskEntity::class,
+        RedeemedPrizeEntity::class
     ], // 关联的实体类
-    version = 1,
+    version = 2, // 修改entities后（即修改数据库schema），需要升级version，否则会校验失败导致闪退
     exportSchema = false // 简化示例，不导出数据库schema
 )
 abstract class AppDatabase : RoomDatabase() {
     // 提供Dao实例
     abstract fun rewardDao(): RewardDao
     abstract fun taskDao(): TaskDao
+    abstract fun redeemedPrizeDao(): RedeemedPrizeDao
 
     // 单例模式，避免重复创建数据库实例
     companion object {
@@ -32,7 +34,8 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext, // 应用上下文
                     AppDatabase::class.java,
                     "app_database" // 数据库文件名
-                ).build()
+                ).fallbackToDestructiveMigration()   // 允许破坏性迁移（删旧建新的空库）
+                .build()
                 INSTANCE = instance
                 instance
             }

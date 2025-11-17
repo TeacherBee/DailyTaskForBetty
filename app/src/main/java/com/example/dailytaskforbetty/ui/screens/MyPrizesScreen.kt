@@ -26,7 +26,7 @@ fun MyPrizesScreen(
     navController: NavController,
     shopViewModel: ShopViewModel = viewModel()
 ) {
-    val redeemedPrizes by shopViewModel.redeemedPrizes.collectAsState()
+    val redeemedPrizes by shopViewModel.redeemedPrizes.collectAsState(initial = emptyList())
 
     Column(
         modifier = Modifier
