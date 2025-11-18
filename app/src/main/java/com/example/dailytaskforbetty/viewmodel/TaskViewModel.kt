@@ -42,6 +42,7 @@ class TaskViewModel(
         startAutoRefreshChecker()
         loadTotalReward()
         loadInitialTasks()
+        checkAndRefreshTasks()
         // ➜ 手动收集任务
         viewModelScope.launch {
             taskDao.observeAllTasks()
@@ -117,9 +118,10 @@ class TaskViewModel(
 
     // 检查并刷新任务（基于当前北京时间）
     fun checkAndRefreshTasks() {
-        val currentTime = getBeijingTime()
+        val currentTime = getBeijingTime() // 假设已有该函数获取北京时间
         viewModelScope.launch {
-            val updatedTasks = tasks.value.map { task ->
+            val latestTasks = taskDao.observeAllTasks().first().map { it.toTask() }
+            val updatedTasks = latestTasks.map { task ->
                 if (currentTime.after(task.nextRefreshTime)) {
                     task.copy(
                         isCompleted = false,
@@ -130,7 +132,6 @@ class TaskViewModel(
                     task
                 }
             }
-            // 同步更新到数据库
             taskDao.upsertTasks(updatedTasks.map { it.toEntity() })
         }
     }
@@ -170,24 +171,24 @@ class TaskViewModel(
 
     // 计算下次刷新时间（核心逻辑）
     private fun calculateNextRefreshTime(cycle: TaskCycle, lastCompletedTime: Date?): Date {
-        val calendar = Calendar.getInstance(TimeZone.getTimeZone("Asia/Shanghai")) // 北京时间
-        calendar.time = lastCompletedTime ?: getBeijingTime() // 若未完成过，基于当前时间计算
+        val calendar = Calendar.getInstance(TimeZone.getTimeZone("Asia/Shanghai"))
+        calendar.time = lastCompletedTime ?: getBeijingTime() // 假设getBeijingTime()已存在
 
         return when (cycle) {
             TaskCycle.DAILY -> {
-                // 每天刷新：下次刷新为明天0点
                 calendar.add(Calendar.DAY_OF_YEAR, 1)
                 calendar.set(Calendar.HOUR_OF_DAY, 0)
                 calendar.set(Calendar.MINUTE, 0)
                 calendar.set(Calendar.SECOND, 0)
+                calendar.set(Calendar.MILLISECOND, 0)
                 calendar.time
             }
             TaskCycle.WEEKLY -> {
-                // 每周刷新：下次刷新为下周同一天0点
                 calendar.add(Calendar.WEEK_OF_YEAR, 1)
                 calendar.set(Calendar.HOUR_OF_DAY, 0)
                 calendar.set(Calendar.MINUTE, 0)
                 calendar.set(Calendar.SECOND, 0)
+                calendar.set(Calendar.MILLISECOND, 0)
                 calendar.time
             }
         }
