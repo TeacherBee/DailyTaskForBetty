@@ -113,7 +113,7 @@ fun TaskTimeApp(context: Context) {
         // 页面内容区域（用padding避免被底部导航遮挡）
         NavHost(
             navController = navController,
-            startDestination = NavRoutes.TASK_SCREEN, // 默认显示任务页面
+            startDestination = NavRoutes.TIME_SCREEN, // 默认显示任务页面
             modifier = Modifier.padding(innerPadding)
         ) {
             // 任务页面：关联你的TaskApp组件
