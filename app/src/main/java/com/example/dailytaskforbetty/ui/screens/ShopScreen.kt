@@ -17,6 +17,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.tooling.preview.Preview
 import java.text.SimpleDateFormat
+import androidx.compose.ui.text.style.TextOverflow
 import java.util.*
 import com.example.dailytaskforbetty.model.Product
 import com.example.dailytaskforbetty.model.StockRefreshCycle
@@ -102,57 +103,69 @@ private fun ProductItem(
     val nextRefreshTime = calculateNextRefreshTime(product)
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+            contentColor = MaterialTheme.colorScheme.onSurface
+        )
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            // 商品信息（不变）
-            Column(modifier = Modifier.weight(1f)) {
-                Text(text = product.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                Text(text = "价格：${product.price} 积分", style = MaterialTheme.typography.bodyMedium)
-                Text(
-                    text = "库存：${product.stock}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = if (product.stock > 0) Color.Green else Color.Red
-                )
-            }
+        Column(modifier = Modifier.padding(16.dp)) {
+            // 标题（单行省略）
+            Text(
+                text = product.name,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
 
-            // 显示下次刷新时间
-            if (product.refreshCycle != StockRefreshCycle.NONE) {
-                Text(
-                    text = "下次刷新：$nextRefreshTime",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color(0xFF2196F3) // 蓝色突出显示
-                )
-            }
-            else {
-                Text(
-                    text = "下次刷新：稍等一下哦~",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color(0xFF2196F3) // 蓝色突出显示
-                )
-            }
-
-            // 兑换按钮（放大图标）
-            Button(
-                onClick = handleRedeem,
-                enabled = isButtonEnabled,
-                modifier = Modifier.size(64.dp), // 按钮尺寸放大（原56dp）
-                shape = CircleShape,
-                contentPadding = PaddingValues(0.dp) // 去除内边距，让图标更大
+            // 价格与库存行
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    imageVector = Icons.Default.ShoppingCart,
-                    contentDescription = "兑换商品",
-                    modifier = Modifier.size(32.dp) // 图标放大（原默认尺寸约24dp）
-                )
+                Column {
+                    Text(
+                        text = "价格：${product.price} 积分",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = "库存：${product.stock}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = if (product.stock > 0) Color.Green else Color.Red,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+
+                // 兑换按钮（放大图标）
+                Button(
+                    onClick = handleRedeem,
+                    enabled = isButtonEnabled,
+                    modifier = Modifier.size(64.dp), // 按钮尺寸放大（原56dp）
+                    shape = CircleShape,
+                    contentPadding = PaddingValues(0.dp) // 去除内边距，让图标更大
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.ShoppingCart,
+                        contentDescription = "兑换商品",
+                        modifier = Modifier.size(32.dp) // 图标放大（原默认尺寸约24dp）
+                    )
+                }
             }
+
+            // 刷新时间（仅显示日期）
+            Text(
+                text = "下次刷新：${formatRefreshDate(nextRefreshTime)}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.secondary,
+                modifier = Modifier.padding(top = 8.dp)
+            )
         }
     }
 
@@ -171,40 +184,54 @@ private fun ProductItem(
     }
 }
 
+// 时间格式化工具函数（仅显示日期）
+private fun formatRefreshDate(dateStr: String): String {
+    val inputFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.CHINA)
+    val outputFormat = SimpleDateFormat("yyyy-MM-dd", Locale.CHINA)
+    return try {
+        val date = inputFormat.parse(dateStr) ?: Date()
+        outputFormat.format(date)
+    } catch (e: Exception) {
+        "刷新时间是个谜~"
+    }
+}
+
 // 计算下次刷新时间的工具函数
 private fun calculateNextRefreshTime(product: Product): String {
     val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.CHINA).apply {
         timeZone = TimeZone.getTimeZone("Asia/Shanghai")
     }
-    val lastRefresh = sdf.parse(product.lastRefreshTime) ?: Date()
-    val calendar = Calendar.getInstance(TimeZone.getTimeZone("Asia/Shanghai")).apply {
-        time = lastRefresh
-    }
 
     return when (product.refreshCycle) {
         StockRefreshCycle.DAILY -> {
-            // 下次刷新为次日0点
-            calendar.add(Calendar.DAY_OF_YEAR, 1)
-            calendar.set(Calendar.HOUR_OF_DAY, 0)
-            calendar.set(Calendar.MINUTE, 0)
-            calendar.set(Calendar.SECOND, 0)
-            sdf.format(calendar.time)
+            // 明天 0 点
+            val cal = Calendar.getInstance(TimeZone.getTimeZone("Asia/Shanghai"))
+            cal.add(Calendar.DAY_OF_YEAR, 1)   // 先移到明天
+            cal.set(Calendar.HOUR_OF_DAY, 0)
+            cal.set(Calendar.MINUTE, 0)
+            cal.set(Calendar.SECOND, 0)
+            cal.set(Calendar.MILLISECOND, 0)
+            sdf.format(cal.time)
         }
         StockRefreshCycle.THREE_DAYS -> {
-            // 下次刷新为三日后的0点
-            calendar.add(Calendar.DAY_OF_YEAR, 3)
-            calendar.set(Calendar.HOUR_OF_DAY, 0)
-            calendar.set(Calendar.MINUTE, 0)
-            calendar.set(Calendar.SECOND, 0)
-            sdf.format(calendar.time)
+            // 3 天后 0 点
+            val cal = Calendar.getInstance(TimeZone.getTimeZone("Asia/Shanghai"))
+            cal.add(Calendar.DAY_OF_YEAR, 3)
+            cal.set(Calendar.HOUR_OF_DAY, 0)
+            cal.set(Calendar.MINUTE, 0)
+            cal.set(Calendar.SECOND, 0)
+            cal.set(Calendar.MILLISECOND, 0)
+            sdf.format(cal.time)
         }
         StockRefreshCycle.WEEKLY -> {
-            // 下次刷新为下周同一日的0点
-            calendar.add(Calendar.WEEK_OF_YEAR, 1)
-            calendar.set(Calendar.HOUR_OF_DAY, 0)
-            calendar.set(Calendar.MINUTE, 0)
-            calendar.set(Calendar.SECOND, 0)
-            sdf.format(calendar.time)
+            // 下周同一天 0 点
+            val cal = Calendar.getInstance(TimeZone.getTimeZone("Asia/Shanghai"))
+            cal.add(Calendar.WEEK_OF_YEAR, 1)
+            cal.set(Calendar.HOUR_OF_DAY, 0)
+            cal.set(Calendar.MINUTE, 0)
+            cal.set(Calendar.SECOND, 0)
+            cal.set(Calendar.MILLISECOND, 0)
+            sdf.format(cal.time)
         }
         else -> "不自动刷新"
     }
