@@ -4,9 +4,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.dailytaskforbetty.model.*
 import com.example.dailytaskforbetty.data.*
+import com.example.dailytaskforbetty.utils.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import org.threeten.bp.format.DateTimeFormatter
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
@@ -14,6 +16,12 @@ import java.util.UUID
 import kotlinx.coroutines.flow.Flow               // Flow 本身
 import kotlinx.coroutines.flow.map                // map 扩展
 import kotlinx.coroutines.flow.first              // first 扩展
+import java.util.*
+import kotlinx.coroutines.delay
+import org.threeten.bp.LocalDateTime
+import org.threeten.bp.ZoneId
+import org.threeten.bp.temporal.ChronoUnit
+import android.util.Log
 
 class ShopViewModel(
     private val redeemedPrizeDao: RedeemedPrizeDao,
@@ -27,38 +35,133 @@ class ShopViewModel(
     // 初始化商品数据（首次运行时）
     init {
         viewModelScope.launch {
-            productDao.observeAllProducts()
-                .map { list -> list.map { it.toProduct() } }
-                .collect { _products.value = it }   // 手动收集
-        }
+//            Log.d("ShopViewModel", "开始初始化商品数据...")
+            // 监听数据库商品变化，实时更新 _products
+            viewModelScope.launch {
+                productDao.observeAllProducts().collect { entities ->
+                    _products.value = entities.map { it.toProduct() }
+                    Log.d("ShopViewModel", "数据库商品变化，当前商品数：${entities.size}")
+                }
+            }
 
-        // 2. 首次初始化逻辑
-        viewModelScope.launch {
             val existingProducts = productDao.observeAllProducts().first()
+//            Log.d("ShopViewModel", "现有商品数量：${existingProducts.size}") // 关键日志
+//            Log.d("ShopViewModel", "是否需要插入默认商品：${existingProducts.isEmpty()}")
             if (existingProducts.isEmpty()) {
-                // 插入默认商品
+                // 初始化时间对齐到当天0点
+                val calendar = Calendar.getInstance(TimeZone.getTimeZone("Asia/Shanghai")).apply {
+                    set(Calendar.HOUR_OF_DAY, 0)
+                    set(Calendar.MINUTE, 0)
+                    set(Calendar.SECOND, 0)
+                    set(Calendar.MILLISECOND, 0)
+                }
+                val initTime = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.CHINA).format(calendar.time)
+
+                // 插入默认商品（配置刷新规则）
                 val defaultProducts = listOf(
                     Product(
                         id = UUID.randomUUID().toString(),
-                        name = "笔记本",
-                        price = 5,
-                        stock = 3
+                        name = "每日暖心小小红包~",
+                        price = 0,
+                        stock = 1,
+                        refreshCycle = StockRefreshCycle.DAILY,  // 每日
+                        lastRefreshTime = initTime,
+                        initialStock = 1
                     ),
                     Product(
                         id = UUID.randomUUID().toString(),
-                        name = "钢笔",
-                        price = 8,
-                        stock = 2
+                        name = "随机小红包！",
+                        price = 10,
+                        stock = 3,
+                        refreshCycle = StockRefreshCycle.DAILY,  // 每日
+                        lastRefreshTime = initTime,
+                        initialStock = 3
                     ),
                     Product(
                         id = UUID.randomUUID().toString(),
-                        name = "书签",
-                        price = 3,
-                        stock = 5
+                        name = "随机中红包！！",
+                        price = 30,
+                        stock = 1,
+                        refreshCycle = StockRefreshCycle.THREE_DAYS, // 每三天
+                        lastRefreshTime = initTime,
+                        initialStock = 1
+                    ),
+                    Product(
+                        id = UUID.randomUUID().toString(),
+                        name = "随机大红包！！！",
+                        price = 70,
+                        stock = 1,
+                        refreshCycle = StockRefreshCycle.WEEKLY, // 每周
+                        lastRefreshTime = initTime,
+                        initialStock = 1
+                    ),
+                    // 书签：不自动刷新
+                    Product(
+                        id = UUID.randomUUID().toString(),
+                        name = "闪现",
+                        price = 0,
+                        stock = 1,
+                        refreshCycle = StockRefreshCycle.NONE,
+                        lastRefreshTime = initTime,
+                        initialStock = 1
                     )
                 ).map { it.toEntity() }
 
-                productDao.insertProducts(defaultProducts)  // 需要在ProductDao中添加@Insert方法
+                productDao.insertProducts(defaultProducts)
+            }
+        }
+        // 启动库存刷新检查（应用启动后开始）
+        startStockRefreshChecker()
+    }
+
+    // 定时检查并刷新库存
+    private fun startStockRefreshChecker() {
+        viewModelScope.launch {
+            while (true) {
+                // 每1小时检查一次（可调整频率）
+                delay(3600000) // 3600000毫秒 = 1小时
+                checkAndRefreshStock()
+            }
+        }
+    }
+
+    // 检查所有商品是否需要刷新库存
+    private suspend fun checkAndRefreshStock() {
+        val currentTime = LocalDateTime.now(ZoneId.of("Asia/Shanghai"))
+        val entities = productDao.observeAllProducts().first()
+
+        entities.forEach { entity ->
+            val product = entity.toProduct()
+            if (product.refreshCycle != StockRefreshCycle.NONE) {
+                val lastRefresh = LocalDateTime.parse(
+                    product.lastRefreshTime,
+                    DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                )
+
+                val needRefresh = when (product.refreshCycle) {
+                    StockRefreshCycle.DAILY ->
+                        currentTime.toLocalDate().isAfter(lastRefresh.toLocalDate())
+                    StockRefreshCycle.THREE_DAYS -> // 三天判断逻辑
+                        ChronoUnit.DAYS.between(lastRefresh.toLocalDate(), currentTime.toLocalDate()) >= 3
+                    StockRefreshCycle.WEEKLY ->
+                        ChronoUnit.WEEKS.between(lastRefresh.toLocalDate(), currentTime.toLocalDate()) >= 1
+                    StockRefreshCycle.NONE -> false
+                }
+
+                if (needRefresh) {
+                    // 计算下次刷新时间（使用TimeUtils统一处理）
+                    val lastRefreshDate = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.CHINA)
+                        .parse(product.lastRefreshTime)!!
+                    val nextRefreshDate = TimeUtils.calculateNextRefreshTime(product.refreshCycle, lastRefreshDate)
+                    val refreshTimeStr = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.CHINA)
+                        .format(nextRefreshDate)
+
+                    val updatedEntity = entity.copy(
+                        stock = product.initialStock,
+                        lastRefreshTime = refreshTimeStr
+                    )
+                    productDao.updateProduct(updatedEntity)
+                }
             }
         }
     }

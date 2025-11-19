@@ -43,7 +43,7 @@ fun TaskScreen(
     ) {
         // 页面标题
         Text(
-            text = "每日任务",
+            text = "每日列表",
             style = MaterialTheme.typography.titleLarge, // 已自带 Bold
             modifier = Modifier.padding(bottom = 16.dp)
         )

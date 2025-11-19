@@ -1,7 +1,7 @@
 // utils/TimeUtils.kt
 package com.example.dailytaskforbetty.utils
 
-import com.example.dailytaskforbetty.model.TaskCycle
+import com.example.dailytaskforbetty.model.*
 import java.util.Calendar
 import java.util.Date
 import java.util.TimeZone
@@ -29,6 +29,31 @@ object TimeUtils {
                 calendar.set(Calendar.MILLISECOND, 0)
                 calendar.time
             }
+        }
+    }
+
+    // 商品周期计算
+    fun calculateNextRefreshTime(cycle: StockRefreshCycle, lastRefreshTime: Date?): Date {
+        val calendar = Calendar.getInstance(TimeZone.getTimeZone("Asia/Shanghai"))
+        calendar.time = lastRefreshTime ?: Calendar.getInstance(TimeZone.getTimeZone("Asia/Shanghai")).time
+
+        return when (cycle) {
+            StockRefreshCycle.DAILY -> {
+                calendar.add(Calendar.DAY_OF_YEAR, 1)
+                calendar.set(Calendar.HOUR_OF_DAY, 0)
+                calendar.time
+            }
+            StockRefreshCycle.THREE_DAYS -> { // 三天刷新逻辑
+                calendar.add(Calendar.DAY_OF_YEAR, 3)
+                calendar.set(Calendar.HOUR_OF_DAY, 0)
+                calendar.time
+            }
+            StockRefreshCycle.WEEKLY -> {
+                calendar.add(Calendar.WEEK_OF_YEAR, 1)
+                calendar.set(Calendar.HOUR_OF_DAY, 0)
+                calendar.time
+            }
+            StockRefreshCycle.NONE -> calendar.time
         }
     }
 }

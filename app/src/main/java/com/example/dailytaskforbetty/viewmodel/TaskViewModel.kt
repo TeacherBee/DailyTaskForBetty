@@ -84,30 +84,30 @@ class TaskViewModel(
                 val initialTasks = listOf(
                     Task(
                         id = "task_drink",
-                        title = "喝水",
+                        title = "喝水（多喝点吧，球球啦~）",
                         isCompleted = false,
-                        reward = 5,
+                        reward = 1,
+                        cycle = TaskCycle.DAILY,
+                        lastCompletedTime = null,
+                        nextRefreshTime = calculateNextRefreshTime(TaskCycle.DAILY, null)
+                    ),
+                    Task(
+                        id = "task_drink_plus",
+                        title = "喝水（加点蜂蜜，对嗓子更好哦~）",
+                        isCompleted = false,
+                        reward = 1,
                         cycle = TaskCycle.DAILY,
                         lastCompletedTime = null,
                         nextRefreshTime = calculateNextRefreshTime(TaskCycle.DAILY, null)
                     ),
                     Task(
                         id = "task_exercise",
-                        title = "运动",
+                        title = "运动（不管是跳操还是跳舞！动起来！）",
                         isCompleted = false,
-                        reward = 15,
+                        reward = 5,
                         cycle = TaskCycle.WEEKLY,
                         lastCompletedTime = null,
-                        nextRefreshTime = calculateNextRefreshTime(TaskCycle.WEEKLY, null)
-                    ),
-                    Task(
-                        id = "task_read",
-                        title = "阅读",
-                        isCompleted = false,
-                        reward = 8,
-                        cycle = TaskCycle.DAILY,
-                        lastCompletedTime = null,
-                        nextRefreshTime = calculateNextRefreshTime(TaskCycle.DAILY, null)
+                        nextRefreshTime = calculateNextRefreshTime(TaskCycle.WEEKLY, null),
                     )
                 ).map { it.toEntity() }  // 转换为Entity
 
