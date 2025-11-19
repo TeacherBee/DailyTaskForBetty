@@ -95,25 +95,38 @@ class MockRedeemedPrizeDao : RedeemedPrizeDao {
 }
 
 class MockProductDao : ProductDao {
-    // 模拟商品数据（预设库存）
+    private val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.CHINA)
+    private val mockTime = sdf.format(Date())
     private val mockProducts = listOf(
+        // 笔记本：每周刷新
         Product(
             id = "mock_product1",
             name = "笔记本",
             price = 5,
-            stock = 3  // 模拟初始库存
+            stock = 3,
+            refreshCycle = StockRefreshCycle.WEEKLY,
+            lastRefreshTime = mockTime,
+            initialStock = 3
         ).toEntity(),
+        // 钢笔：每日刷新
         Product(
             id = "mock_product2",
             name = "钢笔",
             price = 8,
-            stock = 2
+            stock = 2,
+            refreshCycle = StockRefreshCycle.DAILY,
+            lastRefreshTime = mockTime,
+            initialStock = 2
         ).toEntity(),
+        // 书签：不刷新
         Product(
             id = "mock_product3",
             name = "书签",
             price = 3,
-            stock = 5
+            stock = 5,
+            refreshCycle = StockRefreshCycle.NONE,
+            lastRefreshTime = mockTime,
+            initialStock = 5
         ).toEntity()
     )
 

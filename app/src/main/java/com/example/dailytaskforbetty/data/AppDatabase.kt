@@ -15,7 +15,7 @@ import com.example.dailytaskforbetty.model.*
         RedeemedPrizeEntity::class,
         ProductEntity::class
     ], // 关联的实体类
-    version = 3, // 修改entities后（即修改数据库schema），需要升级version，否则会校验失败导致闪退
+    version = 4, // 修改entities后（即修改数据库schema），需要升级version，否则会校验失败导致闪退
     exportSchema = false // 简化示例，不导出数据库schema
 )
 abstract class AppDatabase : RoomDatabase() {

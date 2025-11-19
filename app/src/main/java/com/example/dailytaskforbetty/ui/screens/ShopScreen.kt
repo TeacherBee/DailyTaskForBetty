@@ -1,5 +1,6 @@
 package com.example.dailytaskforbetty.ui.screens
 
+
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -14,11 +15,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.foundation.shape.CircleShape
-
 import androidx.compose.ui.tooling.preview.Preview
+import java.text.SimpleDateFormat
+import java.util.*
 import com.example.dailytaskforbetty.model.Product
+import com.example.dailytaskforbetty.model.StockRefreshCycle
 import com.example.dailytaskforbetty.viewmodel.*
-import com.example.dailytaskforbetty.data.*
 import com.example.dailytaskforbetty.ui.theme.DailyTaskForBettyTheme
 
 // 商店页面：展示商品和兑换功能
@@ -96,6 +98,9 @@ private fun ProductItem(
         }
     }
 
+    // 计算下次刷新时间
+    val nextRefreshTime = calculateNextRefreshTime(product)
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
@@ -115,6 +120,22 @@ private fun ProductItem(
                     text = "库存：${product.stock}",
                     style = MaterialTheme.typography.bodyMedium,
                     color = if (product.stock > 0) Color.Green else Color.Red
+                )
+            }
+
+            // 显示下次刷新时间
+            if (product.refreshCycle != StockRefreshCycle.NONE) {
+                Text(
+                    text = "下次刷新：$nextRefreshTime",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color(0xFF2196F3) // 蓝色突出显示
+                )
+            }
+            else {
+                Text(
+                    text = "下次刷新：稍等一下哦~",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color(0xFF2196F3) // 蓝色突出显示
                 )
             }
 
@@ -147,6 +168,45 @@ private fun ProductItem(
                 }
             }
         )
+    }
+}
+
+// 计算下次刷新时间的工具函数
+private fun calculateNextRefreshTime(product: Product): String {
+    val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.CHINA).apply {
+        timeZone = TimeZone.getTimeZone("Asia/Shanghai")
+    }
+    val lastRefresh = sdf.parse(product.lastRefreshTime) ?: Date()
+    val calendar = Calendar.getInstance(TimeZone.getTimeZone("Asia/Shanghai")).apply {
+        time = lastRefresh
+    }
+
+    return when (product.refreshCycle) {
+        StockRefreshCycle.DAILY -> {
+            // 下次刷新为次日0点
+            calendar.add(Calendar.DAY_OF_YEAR, 1)
+            calendar.set(Calendar.HOUR_OF_DAY, 0)
+            calendar.set(Calendar.MINUTE, 0)
+            calendar.set(Calendar.SECOND, 0)
+            sdf.format(calendar.time)
+        }
+        StockRefreshCycle.THREE_DAYS -> {
+            // 下次刷新为三日后的0点
+            calendar.add(Calendar.DAY_OF_YEAR, 3)
+            calendar.set(Calendar.HOUR_OF_DAY, 0)
+            calendar.set(Calendar.MINUTE, 0)
+            calendar.set(Calendar.SECOND, 0)
+            sdf.format(calendar.time)
+        }
+        StockRefreshCycle.WEEKLY -> {
+            // 下次刷新为下周同一日的0点
+            calendar.add(Calendar.WEEK_OF_YEAR, 1)
+            calendar.set(Calendar.HOUR_OF_DAY, 0)
+            calendar.set(Calendar.MINUTE, 0)
+            calendar.set(Calendar.SECOND, 0)
+            sdf.format(calendar.time)
+        }
+        else -> "不自动刷新"
     }
 }
 
