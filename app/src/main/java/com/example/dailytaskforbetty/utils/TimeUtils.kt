@@ -21,6 +21,14 @@ object TimeUtils {
                 calendar.set(Calendar.MILLISECOND, 0)
                 calendar.time
             }
+            TaskCycle.THREE_DAYS -> { // 新增：每三天刷新逻辑
+                calendar.add(Calendar.DAY_OF_YEAR, 3) // 累加3天
+                calendar.set(Calendar.HOUR_OF_DAY, 0)
+                calendar.set(Calendar.MINUTE, 0)
+                calendar.set(Calendar.SECOND, 0)
+                calendar.set(Calendar.MILLISECOND, 0)
+                calendar.time
+            }
             TaskCycle.WEEKLY -> {
                 calendar.add(Calendar.WEEK_OF_YEAR, 1)
                 calendar.set(Calendar.HOUR_OF_DAY, 0)
