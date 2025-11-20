@@ -95,7 +95,33 @@ class ShopViewModel(
                         lastRefreshTime = initTime,
                         initialStock = 1
                     ),
-                    // 书签：不自动刷新
+                    Product(
+                        id = UUID.randomUUID().toString(),
+                        name = "惊喜小礼盒OVO",
+                        price = 15,
+                        stock = 2,
+                        refreshCycle = StockRefreshCycle.DAILY,
+                        lastRefreshTime = initTime,
+                        initialStock = 2
+                    ),
+                    Product(
+                        id = UUID.randomUUID().toString(),
+                        name = "可口外卖QAQ",
+                        price = 20,
+                        stock = 1,
+                        refreshCycle = StockRefreshCycle.DAILY,
+                        lastRefreshTime = initTime,
+                        initialStock = 1
+                    ),
+                    Product(
+                        id = UUID.randomUUID().toString(),
+                        name = "劲爆大餐^_^ ",
+                        price = 60,
+                        stock = 1,
+                        refreshCycle = StockRefreshCycle.THREE_DAYS,
+                        lastRefreshTime = initTime,
+                        initialStock = 1
+                    ),
                     Product(
                         id = UUID.randomUUID().toString(),
                         name = "闪现",
@@ -133,9 +159,11 @@ class ShopViewModel(
         entities.forEach { entity ->
             val product = entity.toProduct()
             if (product.refreshCycle != StockRefreshCycle.NONE) {
+                val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                    .withZone(ZoneId.of("Asia/Shanghai")) // 强制上海时区
                 val lastRefresh = LocalDateTime.parse(
                     product.lastRefreshTime,
-                    DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                    formatter
                 )
 
                 val needRefresh = when (product.refreshCycle) {

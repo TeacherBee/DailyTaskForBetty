@@ -105,9 +105,9 @@ class TaskViewModel(
                         title = "运动（不管是跳操还是跳舞！动起来！）",
                         isCompleted = false,
                         reward = 5,
-                        cycle = TaskCycle.WEEKLY,
+                        cycle = TaskCycle.THREE_DAYS,
                         lastCompletedTime = null,
-                        nextRefreshTime = calculateNextRefreshTime(TaskCycle.WEEKLY, null),
+                        nextRefreshTime = calculateNextRefreshTime(TaskCycle.THREE_DAYS, null),
                     )
                 ).map { it.toEntity() }  // 转换为Entity
 
@@ -177,6 +177,14 @@ class TaskViewModel(
         return when (cycle) {
             TaskCycle.DAILY -> {
                 calendar.add(Calendar.DAY_OF_YEAR, 1)
+                calendar.set(Calendar.HOUR_OF_DAY, 0)
+                calendar.set(Calendar.MINUTE, 0)
+                calendar.set(Calendar.SECOND, 0)
+                calendar.set(Calendar.MILLISECOND, 0)
+                calendar.time
+            }
+            TaskCycle.THREE_DAYS -> { // 新增：每三天刷新逻辑
+                calendar.add(Calendar.DAY_OF_YEAR, 3) // 累加3天
                 calendar.set(Calendar.HOUR_OF_DAY, 0)
                 calendar.set(Calendar.MINUTE, 0)
                 calendar.set(Calendar.SECOND, 0)
