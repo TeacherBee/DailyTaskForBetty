@@ -22,10 +22,12 @@ import org.threeten.bp.LocalDateTime
 import org.threeten.bp.ZoneId
 import org.threeten.bp.temporal.ChronoUnit
 import android.util.Log
+import kotlin.random.Random
 
 class ShopViewModel(
     private val redeemedPrizeDao: RedeemedPrizeDao,
-    private val productDao: ProductDao
+    private val productDao: ProductDao,
+    val redPacketDao: RedPacketDao
 ) : ViewModel() {
     // 从数据库获取商品列表
     // 1. 只保留 Flow
@@ -227,7 +229,65 @@ class ShopViewModel(
                     redeemTime = redeemTime
                 )
                 redeemedPrizeDao.insertRedeemedPrize(newPrize.toEntity())
+
+                // 4. 处理红包兑现
+                handleRedPacketRedeem(productEntity.name, redeemTime)
             }
+        }
+    }
+
+    // 处理红包兑现
+    private suspend fun handleRedPacketRedeem(productName: String, time: String) {
+        val amount = when (productName) {
+            "每日暖心小小红包~" -> 0.52 // 固定金额
+            "随机小红包！"   -> Random.nextDouble(0.01, 18.88 + 0.01)   // 左闭右开
+            "随机中红包！！"  -> Random.nextDouble(28.88, 58.88 + 0.01)
+            "随机大红包！！！" -> Random.nextDouble(68.88, 138.88 + 0.01)
+            else -> 0.0 // 非红包类奖品不处理
+        }
+
+        if (amount > 0) {
+            // 保留两位小数
+            val formattedAmount = String.format("%.2f", amount).toDouble()
+
+            // 更新红包余额
+            val currentBalance = redPacketDao.getRedPacketBalanceFlow().first()
+            val newBalance = (currentBalance?.balance ?: 0.0) + formattedAmount
+            redPacketDao.insertOrReplaceRedPacketBalance(
+                RedPacketBalanceEntity(balance = newBalance)
+            )
+
+            // 记录红包历史
+            redPacketDao.insertRedPacketHistory(
+                RedPacketHistoryEntity(
+                    type = "收入",
+                    amount = formattedAmount,
+                    reason = "兑换：$productName",
+                    time = time
+                )
+            )
+        }
+    }
+
+    fun handleWithdraw(amount: Double) {
+        viewModelScope.launch {
+            // 补全 RedPacketBalanceEntity 的 `initial` 参数（根据你的实体类定义调整）
+            val balanceEntity = RedPacketBalanceEntity(
+                id = 1, // 对应实体类的@PrimaryKey参数
+                balance = 0.0
+            )
+            redPacketDao.insertOrReplaceRedPacketBalance(balanceEntity)
+
+            // 插入提现历史
+            val time = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.CHINA).format(Date())
+            redPacketDao.insertRedPacketHistory(
+                RedPacketHistoryEntity(
+                    type = "提现",
+                    amount = amount,
+                    reason = "手动提现",
+                    time = time
+                )
+            )
         }
     }
 

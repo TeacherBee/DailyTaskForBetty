@@ -149,3 +149,40 @@ class MockProductDao : ProductDao {
     // 模拟批量插入商品（空实现）
     override suspend fun insertProducts(products: List<ProductEntity>) {}
 }
+
+class MockRedPacketDao : RedPacketDao {
+    // 模拟红包余额
+    override fun getRedPacketBalanceFlow(): Flow<RedPacketBalanceEntity?> {
+        return flowOf(RedPacketBalanceEntity(balance = 68.52))
+    }
+
+    // 模拟插入或替换红包余额
+    override suspend fun insertOrReplaceRedPacketBalance(balance: RedPacketBalanceEntity) {}
+
+    // 模拟红包历史
+    override fun getRedPacketHistories(): Flow<List<RedPacketHistoryEntity>> {
+        val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.CHINA)
+        val mockTime = sdf.format(Date())
+        val yesterday = sdf.format(Date(System.currentTimeMillis() - 86400000))
+
+        return flowOf(
+            listOf(
+                RedPacketHistoryEntity(
+                    type = "收入",
+                    amount = 0.52,
+                    reason = "兑换：每日暖心小小红包~",
+                    time = yesterday
+                ),
+                RedPacketHistoryEntity(
+                    type = "收入",
+                    amount = 18.88,
+                    reason = "兑换：随机小红包！",
+                    time = mockTime
+                )
+            )
+        )
+    }
+
+    // 模拟插入红包历史
+    override suspend fun insertRedPacketHistory(history: RedPacketHistoryEntity) {}
+}
