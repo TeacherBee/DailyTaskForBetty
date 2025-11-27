@@ -145,7 +145,7 @@ class ShopViewModel(
         viewModelScope.launch {
             while (true) {
                 // 每1小时检查一次（可调整频率）
-                delay(3600000) // 3600000毫秒 = 1小时
+                delay(1800000) // 3600000毫秒 = 1小时
                 checkAndRefreshStock()
             }
         }
@@ -153,43 +153,44 @@ class ShopViewModel(
 
     // 检查所有商品是否需要刷新库存
     private suspend fun checkAndRefreshStock() {
-        val currentTime = LocalDateTime.now(ZoneId.of("Asia/Shanghai"))
-        val entities = productDao.observeAllProducts().first()
+        val zone = ZoneId.of("Asia/Shanghai")
+        val currentTime = LocalDateTime.now(zone)
+        val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(zone)
 
+        val entities = productDao.observeAllProducts().first()
         entities.forEach { entity ->
             val product = entity.toProduct()
-            if (product.refreshCycle != StockRefreshCycle.NONE) {
-                val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-                    .withZone(ZoneId.of("Asia/Shanghai")) // 强制上海时区
-                val lastRefresh = LocalDateTime.parse(
-                    product.lastRefreshTime,
-                    formatter
-                )
+            if (product.refreshCycle == StockRefreshCycle.NONE) return@forEach
 
-                val needRefresh = when (product.refreshCycle) {
-                    StockRefreshCycle.DAILY ->
-                        currentTime.toLocalDate().isAfter(lastRefresh.toLocalDate())
-                    StockRefreshCycle.THREE_DAYS -> // 三天判断逻辑
-                        ChronoUnit.DAYS.between(lastRefresh.toLocalDate(), currentTime.toLocalDate()) >= 3
-                    StockRefreshCycle.WEEKLY ->
-                        ChronoUnit.WEEKS.between(lastRefresh.toLocalDate(), currentTime.toLocalDate()) >= 1
-                    StockRefreshCycle.NONE -> false
-                }
+            val lastRefresh = try {
+                LocalDateTime.parse(product.lastRefreshTime, formatter)
+            } catch (e: Exception) {
+                currentTime.minusDays(1)          // 格式错误就当成昨天
+            }
 
-                if (needRefresh) {
-                    // 计算下次刷新时间（使用TimeUtils统一处理）
-                    val lastRefreshDate = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.CHINA)
-                        .parse(product.lastRefreshTime)!!
-                    val nextRefreshDate = TimeUtils.calculateNextRefreshTime(product.refreshCycle, lastRefreshDate)
-                    val refreshTimeStr = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.CHINA)
-                        .format(nextRefreshDate)
+            val needRefresh = when (product.refreshCycle) {
+                StockRefreshCycle.DAILY ->
+                    currentTime.toLocalDate().isAfter(lastRefresh.toLocalDate())
+                StockRefreshCycle.THREE_DAYS ->
+                    ChronoUnit.DAYS.between(lastRefresh.toLocalDate(), currentTime.toLocalDate()) >= 3
+                StockRefreshCycle.WEEKLY ->
+                    ChronoUnit.WEEKS.between(lastRefresh.toLocalDate(), currentTime.toLocalDate()) >= 1
+                StockRefreshCycle.NONE -> false
+            }
 
-                    val updatedEntity = entity.copy(
+            if (needRefresh) {
+                val lastRefreshDate = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.CHINA)
+                    .parse(product.lastRefreshTime)!!
+                val nextRefreshDate = TimeUtils.calculateNextRefreshTime(product.refreshCycle, lastRefreshDate)
+                val refreshTimeStr = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.CHINA)
+                    .format(nextRefreshDate)
+
+                productDao.updateProduct(
+                    entity.copy(
                         stock = product.initialStock,
                         lastRefreshTime = refreshTimeStr
                     )
-                    productDao.updateProduct(updatedEntity)
-                }
+                )
             }
         }
     }
