@@ -17,5 +17,7 @@ class MyApplication : Application() {
         database = AppDatabase.getDatabase(this)
         // 启动任务刷新的周期性工作
         setupTaskRefreshWork(this)
+        // 初始化库存刷新
+        setupStockRefreshWork(this)
     }
 }
