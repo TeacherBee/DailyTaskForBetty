@@ -105,6 +105,7 @@ fun TaskTimeApp(context: Context) {
     val taskViewModel: TaskViewModel = viewModel(factory = viewModelFactory)
     val shopViewModel: ShopViewModel = viewModel(factory = viewModelFactory) // 商店ViewModel
     val userViewModel: UserViewModel = viewModel() // 个人信息ViewModel
+    val redPacketDao = shopViewModel.redPacketDao
 
     // 使用Scaffold布局，底部放导航栏
     Scaffold(
@@ -151,7 +152,8 @@ fun TaskTimeApp(context: Context) {
                 AccountScreen(
                     navController = navController,
                     taskViewModel = taskViewModel,
-                    shopViewModel = shopViewModel
+                    shopViewModel = shopViewModel,
+                    redPacketDao = redPacketDao
                 )
             }
             // 我的奖品页面

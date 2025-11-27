@@ -22,7 +22,8 @@ class ViewModelFactory(private val context: Context) : ViewModelProvider.Factory
         else if (modelClass.isAssignableFrom(ShopViewModel::class.java)) {
             return ShopViewModel(
                 redeemedPrizeDao = database.redeemedPrizeDao(),
-                productDao = database.productDao()
+                productDao = database.productDao(),
+                database.redPacketDao()
             ) as T
         }
 
