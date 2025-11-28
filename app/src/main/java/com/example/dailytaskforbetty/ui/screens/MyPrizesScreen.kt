@@ -17,6 +17,9 @@ import com.example.dailytaskforbetty.viewmodel.ShopViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.foundation.clickable         // clickable
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.MaterialTheme     // MaterialTheme
 import androidx.navigation.compose.rememberNavController
 
@@ -27,6 +30,24 @@ fun MyPrizesScreen(
     shopViewModel: ShopViewModel = viewModel()
 ) {
     val redeemedPrizes by shopViewModel.redeemedPrizes.collectAsState(initial = emptyList())
+
+    // 过滤掉红包类奖品
+    val filteredPrizes = redeemedPrizes.filter { prize ->
+        !listOf(
+            "每日暖心小小红包~",
+            "随机小红包！",
+            "随机中红包！！",
+            "随机大红包！！！"
+        ).contains(prize.productName)
+    }
+
+    // 区分已收货和未收货
+    val receivedPrizes = filteredPrizes.filter { it.status == PrizeStatus.RECEIVED }
+    val pendingPrizes = filteredPrizes.filter { it.status != PrizeStatus.RECEIVED }
+
+    // 展开状态管理
+    var showPending by remember { mutableStateOf(true) }
+    var showReceived by remember { mutableStateOf(true) }
 
     Column(
         modifier = Modifier
@@ -63,17 +84,79 @@ fun MyPrizesScreen(
                 )
             }
         } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+            // 未收货区域
+            CategorySection(
+                title = "未收货 (${pendingPrizes.size})",
+                expanded = showPending,
+                onToggle = { showPending = !showPending }
             ) {
-                items(redeemedPrizes.reversed()) { prize -> // 倒序：最新兑换的在前
-                    PrizeItem(
-                        prize = prize,
-                        onConfirmReceived = { shopViewModel.confirmReceived(prize.id) }
-                    )
+                LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    items(pendingPrizes) { prize ->
+                        PrizeItem(
+                            prize = prize,
+                            onConfirmReceived = { shopViewModel.confirmReceived(prize.id) }
+                        )
+                    }
                 }
             }
+
+            // 已收货区域
+            CategorySection(
+                title = "已收货 (${receivedPrizes.size})",
+                expanded = showReceived,
+                onToggle = { showReceived = !showReceived }
+            ) {
+                LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    items(receivedPrizes) { prize ->
+                        PrizeItem(
+                            prize = prize,
+                            onConfirmReceived = { shopViewModel.confirmReceived(prize.id) }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+// 分类区域组件
+@Composable
+private fun CategorySection(
+    title: String,
+    expanded: Boolean,
+    onToggle: () -> Unit,
+    content: @Composable () -> Unit
+) {
+    Column(modifier = Modifier.padding(vertical = 8.dp)) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { onToggle() }
+                .padding(vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = title,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+            Icon(
+                imageVector = if (expanded)
+                    Icons.Default.KeyboardArrowUp
+                else
+                    Icons.Default.KeyboardArrowDown,
+                contentDescription = if (expanded) "收起" else "展开"
+            )
+        }
+        if (expanded) {
+            content()
         }
     }
 }

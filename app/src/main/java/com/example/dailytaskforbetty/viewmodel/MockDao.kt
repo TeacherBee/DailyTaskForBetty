@@ -92,6 +92,12 @@ class MockRedeemedPrizeDao : RedeemedPrizeDao {
 
     // 模拟更新已兑换奖品（空实现，预览无需实际存储）
     override suspend fun updateRedeemedPrize(entity: RedeemedPrizeEntity) {}
+
+    // 新增：实现获取单个奖品的模拟方法
+    override suspend fun getRedeemedPrizeById(id: String): RedeemedPrizeEntity? {
+        // 模拟查询，返回null或找到的模拟实体（这里简单返回null）
+        return null
+    }
 }
 
 class MockProductDao : ProductDao {

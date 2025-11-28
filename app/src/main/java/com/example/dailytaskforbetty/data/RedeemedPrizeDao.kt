@@ -20,4 +20,7 @@ interface RedeemedPrizeDao {
     // 更新奖品状态
     @Update
     suspend fun updateRedeemedPrize(entity: RedeemedPrizeEntity)
+
+    @Query("SELECT * FROM redeemed_prizes WHERE id = :id")
+    suspend fun getRedeemedPrizeById(id: String): RedeemedPrizeEntity?
 }
