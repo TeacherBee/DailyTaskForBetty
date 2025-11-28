@@ -165,11 +165,14 @@ class MockRedPacketDao : RedPacketDao {
     // 模拟插入或替换红包余额
     override suspend fun insertOrReplaceRedPacketBalance(balance: RedPacketBalanceEntity) {}
 
-    // 模拟红包历史
+    // 模拟红包历史（修正时区）
     override fun getRedPacketHistories(): Flow<List<RedPacketHistoryEntity>> {
-        val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.CHINA)
+        // 关键：设置时区为北京时间
+        val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.CHINA).apply {
+            timeZone = TimeZone.getTimeZone("Asia/Shanghai")
+        }
         val mockTime = sdf.format(Date())
-        val yesterday = sdf.format(Date(System.currentTimeMillis() - 86400000))
+        val yesterday = sdf.format(Date(System.currentTimeMillis() - 86400000)) // 昨天的时间（正确时区）
 
         return flowOf(
             listOf(
