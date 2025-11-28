@@ -80,19 +80,54 @@ fun AccountScreen(
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text(text = "红包余额", style = MaterialTheme.typography.titleMedium)
+                Text(text = "账户资产", style = MaterialTheme.typography.titleMedium)
+                // 红包余额
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
+                        text = "红包余额",
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                    Text(
                         text = "${decimalFormat.format(currentBalance)} 元",
-                        fontSize = 28.sp,
+                        fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
                     )
+                }
 
+                // 积分余额（新增部分）
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "积分余额",
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                    Text(
+                        text = "$totalReward 积分",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xE6FF5722) // 可以使用与积分相关的主题色
+                    )
+                }
+
+                // 提现按钮（保持不变）
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp),
+                    contentAlignment = Alignment.CenterEnd
+                ) {
                     Button(
                         onClick = { showWithdrawDialog = true },
                         enabled = currentBalance > 0
