@@ -284,23 +284,27 @@ class ShopViewModel(
 
     fun handleWithdraw(amount: Double) {
         viewModelScope.launch {
-            // 补全 RedPacketBalanceEntity 的 `initial` 参数（根据你的实体类定义调整）
-            val balanceEntity = RedPacketBalanceEntity(
-                id = 1, // 对应实体类的@PrimaryKey参数
-                balance = 0.0
-            )
-            redPacketDao.insertOrReplaceRedPacketBalance(balanceEntity)
+            // 1. 格式化当前时间（强制使用北京时间）
+            val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.CHINA).apply {
+                timeZone = TimeZone.getTimeZone("Asia/Shanghai") // 关键：设置时区
+            }
+            val withdrawTime = sdf.format(Date())
 
-            // 插入提现历史
-            val time = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.CHINA).format(Date())
-            redPacketDao.insertRedPacketHistory(
-                RedPacketHistoryEntity(
-                    type = "提现",
-                    amount = amount,
-                    reason = "手动提现",
-                    time = time
-                )
+            // 2. 更新红包余额（扣减提现金额）
+            val currentBalance = redPacketDao.getRedPacketBalanceFlow().first()?.balance ?: 0.0
+            val newBalance = currentBalance - amount
+            redPacketDao.insertOrReplaceRedPacketBalance(
+                RedPacketBalanceEntity(balance = newBalance)
             )
+
+            // 3. 记录提现历史（使用正确时区的时间）
+            val history = RedPacketHistoryEntity(
+                type = "提现",
+                amount = amount,
+                reason = "申请提现到账户",
+                time = withdrawTime
+            )
+            redPacketDao.insertRedPacketHistory(history)
         }
     }
 
