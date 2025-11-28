@@ -210,7 +210,6 @@ class ShopViewModel(
         val redeemTime = sdf.format(Date())
 
         viewModelScope.launch {
-            // 从数据库获取商品并更新库存
             val productEntity = productDao.getProductById(productId)
             if (productEntity != null && productEntity.stock > 0 && currentReward >= productEntity.price) {
                 // 1. 库存减1
@@ -221,11 +220,25 @@ class ShopViewModel(
                 taskViewModel.reduceReward(productEntity.price, productEntity.name)
 
                 // 3. 创建已兑换奖品并保存到数据库
+                // 判断是否为红包类奖品
+                val isRedPacket = listOf(
+                    "每日暖心小小红包~",
+                    "随机小红包！",
+                    "随机中红包！！",
+                    "随机大红包！！！"
+                ).contains(productEntity.name)
+
+                val initialStatus = if (isRedPacket) {
+                    PrizeStatus.RECEIVED // 红包类直接设为已收货
+                } else {
+                    PrizeStatus.PENDING_SHIPMENT // 其他奖品设为待发货
+                }
+
                 val newPrize = RedeemedPrize(
                     id = UUID.randomUUID().toString(),
                     productName = productEntity.name,
                     productPrice = productEntity.price,
-                    status = PrizeStatus.PENDING_SHIPMENT,
+                    status = initialStatus,
                     redeemTime = redeemTime
                 )
                 redeemedPrizeDao.insertRedeemedPrize(newPrize.toEntity())
@@ -294,11 +307,10 @@ class ShopViewModel(
     // 确认收货（更新数据库中的状态）
     fun confirmReceived(prizeId: String) {
         viewModelScope.launch {
-            // 查询对应奖品并更新状态
-            val entities = redeemedPrizeDao.observeAllRedeemedPrizes().first()
-            entities.find { it.id == prizeId }?.let { entity ->
-                val updatedEntity = entity.copy(status = PrizeStatus.RECEIVED.name)
-                redeemedPrizeDao.updateRedeemedPrize(updatedEntity)
+            val entity = redeemedPrizeDao.getRedeemedPrizeById(prizeId) // 需要在Dao中添加此方法
+            if (entity != null) {
+                val updated = entity.copy(status = PrizeStatus.RECEIVED.name)
+                redeemedPrizeDao.updateRedeemedPrize(updated)
             }
         }
     }
