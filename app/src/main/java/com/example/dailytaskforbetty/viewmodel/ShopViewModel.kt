@@ -252,8 +252,8 @@ class ShopViewModel(
     // 处理红包兑现
     private suspend fun handleRedPacketRedeem(productName: String, time: String) {
         val amount = when (productName) {
-            "每日暖心小小红包~" -> 0.52 // 固定金额
-            "随机小红包！"   -> Random.nextDouble(0.01, 18.88 + 0.01)   // 左闭右开
+            "每日暖心小小红包~" -> 1.34 // 固定金额
+            "随机小红包！"   -> Random.nextDouble(8.88, 18.88 + 0.01)   // 左闭右开
             "随机中红包！！"  -> Random.nextDouble(28.88, 58.88 + 0.01)
             "随机大红包！！！" -> Random.nextDouble(68.88, 138.88 + 0.01)
             else -> 0.0 // 非红包类奖品不处理

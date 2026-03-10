@@ -45,7 +45,7 @@ class MockTaskDao : TaskDao {
                 title = "运动",
                 isCompleted = false,
                 reward = 15,
-                cycle = TaskCycle.WEEKLY,
+                cycle = TaskCycle.WEEKLY_5_TIMES,
                 lastCompletedTime = null,
                 nextRefreshTime = Date(mockTime + 604800000) // 7天后刷新
             ).toEntity()

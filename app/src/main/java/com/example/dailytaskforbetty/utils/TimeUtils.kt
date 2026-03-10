@@ -37,6 +37,14 @@ object TimeUtils {
                 calendar.set(Calendar.MILLISECOND, 0)
                 calendar.time
             }
+            TaskCycle.WEEKLY_5_TIMES -> {
+                calendar.add(Calendar.WEEK_OF_YEAR, 1)
+                calendar.set(Calendar.HOUR_OF_DAY, 0)
+                calendar.set(Calendar.MINUTE, 0)
+                calendar.set(Calendar.SECOND, 0)
+                calendar.set(Calendar.MILLISECOND, 0)
+                calendar.time
+            }
         }
     }
 
