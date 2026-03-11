@@ -320,13 +320,17 @@ private fun CalendarTaskItem(
     taskViewModel: TaskViewModel,
     onRetroactiveComplete: () -> Unit
 ) {
-    // 可以补领的任务ID列表
+    // 可以补领的任务ID列表（喝水和喝蜂蜜水）
     val retroactiveTaskIds = listOf("task_drink", "task_drink_plus")
+    // 一周不吃xx任务ID
+    val sundayOnlyTaskId = "task_no_xx"
     
     // 补领次数（通过LaunchedEffect从数据库获取）
     var retroactiveCount by remember { mutableStateOf(0) }
     // 任务在该日期是否补领过
     var isRetroactiveOnDate by remember { mutableStateOf(false) }
+    // 检查选中的日期是否是周日
+    val isSunday = taskViewModel.isSunday(selectedDate)
     
     // 获取年份和月份
     val year = selectedDate.get(Calendar.YEAR)
@@ -352,9 +356,15 @@ private fun CalendarTaskItem(
         }
     }
     
-    // 只有指定任务可以补领，且补领次数<5，且该日期未补领过
-    val canRetroactive = isPastDate && !isCompletedOnDate && 
+    // 喝水/喝蜂蜜水：可以补领，每月最多5次
+    val isNormalRetroactiveTask = isPastDate && !isCompletedOnDate && 
             retroactiveTaskIds.contains(task.id) && retroactiveCount < 5
+    
+    // 一周不吃xx：可以补领，但只能在周日，无次数限制
+    val isSundayOnlyRetroactiveTask = isPastDate && !isCompletedOnDate && 
+            task.id == sundayOnlyTaskId && isSunday
+    
+    val canRetroactive = isNormalRetroactiveTask || isSundayOnlyRetroactiveTask
     
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -379,7 +389,7 @@ private fun CalendarTaskItem(
                     style = MaterialTheme.typography.bodySmall,
                     color = if (isCompletedOnDate) Color.Gray else Color(0xFF00C853)
                 )
-                // 只有可以补领的任务才显示补领次数
+                // 只有喝水/喝蜂蜜水任务才显示补领次数
                 if (isPastDate && !isCompletedOnDate && retroactiveTaskIds.contains(task.id)) {
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
@@ -403,7 +413,10 @@ private fun CalendarTaskItem(
                     Button(
                         onClick = {
                             onRetroactiveComplete()
-                            retroactiveCount++
+                            // 只有喝水/喝蜂蜜水任务才增加补领次数
+                            if (retroactiveTaskIds.contains(task.id)) {
+                                retroactiveCount++
+                            }
                             isRetroactiveOnDate = true
                         },
                         modifier = Modifier.size(width = 100.dp, height = 40.dp),

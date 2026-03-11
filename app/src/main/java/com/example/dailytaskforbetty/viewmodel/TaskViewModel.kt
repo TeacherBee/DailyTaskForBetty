@@ -28,8 +28,12 @@ class TaskViewModel(
     private val retroactiveHistoryDao: RetroactiveHistoryDao
 ) : ViewModel() {
     
-    // 可以补领的任务ID列表
+    // 可以补领的任务ID列表（喝水和喝蜂蜜水）
     private val retroactiveTaskIds = listOf("task_drink", "task_drink_plus")
+    // 一周不吃xx任务ID
+    private val sundayOnlyTaskId = "task_no_xx"
+    // 无补领次数限制的任务ID列表
+    private val noLimitRetroactiveTaskIds = listOf(sundayOnlyTaskId)
     // 任务列表：从数据库获取并转换为Task对象（替代原有的内存列表）
     private val _tasks = MutableStateFlow<List<Task>>(emptyList())
     val tasks: StateFlow<List<Task>> = _tasks
@@ -180,6 +184,11 @@ class TaskViewModel(
         return calendar.get(Calendar.DAY_OF_WEEK) == Calendar.SUNDAY
     }
 
+    // 检查是否是周日
+    fun isSunday(date: Calendar): Boolean {
+        return date.get(Calendar.DAY_OF_WEEK) == Calendar.SUNDAY
+    }
+
     // 完成任务：更新状态并计算下次刷新时间
     fun completeTask(taskId: String) {
         val currentTime = getBeijingTime()
@@ -188,13 +197,17 @@ class TaskViewModel(
     
     // 检查任务是否可以补领
     suspend fun canRetroactiveTask(taskId: String, year: Int, month: Int): Boolean {
-        // 检查是否在允许补领的任务列表中
-        if (!retroactiveTaskIds.contains(taskId)) {
-            return false
+        // 检查是否在允许补领的任务列表中（喝水/喝蜂蜜水）
+        if (retroactiveTaskIds.contains(taskId)) {
+            // 检查补领次数
+            val count = retroactiveHistoryDao.getRetroactiveCount(taskId, year, month)
+            return count < 5
         }
-        // 检查补领次数
-        val count = retroactiveHistoryDao.getRetroactiveCount(taskId, year, month)
-        return count < 5
+        // 检查是否是无限制补领的任务（一周不吃xx）
+        if (noLimitRetroactiveTaskIds.contains(taskId)) {
+            return true
+        }
+        return false
     }
     
     // 获取任务的补领次数
@@ -224,6 +237,11 @@ class TaskViewModel(
             
             // 检查是否可以补领
             if (!canRetroactiveTask(taskId, year, month)) {
+                return@launch
+            }
+            
+            // 如果是一周不吃xx任务，检查是否是周日
+            if (taskId == sundayOnlyTaskId && !isSunday(completedDate)) {
                 return@launch
             }
             
