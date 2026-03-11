@@ -198,3 +198,21 @@ class MockRedPacketDao : RedPacketDao {
     // 模拟插入红包历史
     override suspend fun insertRedPacketHistory(history: RedPacketHistoryEntity) {}
 }
+
+class MockRetroactiveHistoryDao : RetroactiveHistoryDao {
+    override suspend fun insertRetroactiveHistory(history: RetroactiveHistoryEntity) {}
+    
+    override suspend fun getRetroactiveCountForTask(taskId: String, year: Int, month: Int): List<RetroactiveHistoryEntity> {
+        return emptyList()
+    }
+    
+    override suspend fun getRetroactiveCount(taskId: String, year: Int, month: Int): Int {
+        return 0
+    }
+    
+    override fun observeAllRetroactiveHistories(): Flow<List<RetroactiveHistoryEntity>> {
+        return flowOf(emptyList())
+    }
+    
+    override suspend fun deleteRetroactiveHistory(history: RetroactiveHistoryEntity) {}
+}

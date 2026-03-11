@@ -79,8 +79,12 @@ fun CalendarScreen(
             SelectedDateTasks(
                 date = date,
                 tasks = tasks,
+                taskViewModel = taskViewModel,
                 onCompleteTask = { taskId ->
                     taskViewModel.completeTask(taskId)
+                },
+                onRetroactiveComplete = { taskId ->
+                    taskViewModel.completeTaskRetroactively(taskId, date)
                 }
             )
         }
@@ -257,13 +261,19 @@ private fun DateCell(
 private fun SelectedDateTasks(
     date: Calendar,
     tasks: List<Task>,
-    onCompleteTask: (String) -> Unit
+    taskViewModel: TaskViewModel,
+    onCompleteTask: (String) -> Unit,
+    onRetroactiveComplete: (String) -> Unit
 ) {
     val dateFormat = SimpleDateFormat("yyyy年MM月dd日", Locale.CHINA).apply {
         timeZone = TimeZone.getTimeZone("Asia/Shanghai")
     }
     
     val tasksOnDate = getTasksForDate(date, tasks)
+    val today = Calendar.getInstance(TimeZone.getTimeZone("Asia/Shanghai"))
+    val isToday = isSameDay(date, today)
+    val isPastDate = date.before(today) && !isToday
+    val isFutureDate = date.after(today) && !isToday
     
     Column {
         Text(
@@ -287,7 +297,12 @@ private fun SelectedDateTasks(
                 items(tasksOnDate) { task ->
                     CalendarTaskItem(
                         task = task,
-                        onComplete = { onCompleteTask(task.id) }
+                        isToday = isToday,
+                        isPastDate = isPastDate,
+                        isFutureDate = isFutureDate,
+                        selectedDate = date,
+                        taskViewModel = taskViewModel,
+                        onRetroactiveComplete = { onRetroactiveComplete(task.id) }
                     )
                 }
             }
@@ -298,8 +313,49 @@ private fun SelectedDateTasks(
 @Composable
 private fun CalendarTaskItem(
     task: Task,
-    onComplete: () -> Unit
+    isToday: Boolean,
+    isPastDate: Boolean,
+    isFutureDate: Boolean,
+    selectedDate: Calendar,
+    taskViewModel: TaskViewModel,
+    onRetroactiveComplete: () -> Unit
 ) {
+    // 可以补领的任务ID列表
+    val retroactiveTaskIds = listOf("task_drink", "task_drink_plus")
+    
+    // 补领次数（通过LaunchedEffect从数据库获取）
+    var retroactiveCount by remember { mutableStateOf(0) }
+    // 任务在该日期是否补领过
+    var isRetroactiveOnDate by remember { mutableStateOf(false) }
+    
+    // 获取年份和月份
+    val year = selectedDate.get(Calendar.YEAR)
+    val month = selectedDate.get(Calendar.MONTH) + 1
+    
+    // 从数据库获取补领次数和检查是否补领过
+    LaunchedEffect(task.id, year, month, selectedDate.timeInMillis) {
+        retroactiveCount = taskViewModel.getRetroactiveCount(task.id, year, month)
+        isRetroactiveOnDate = taskViewModel.isTaskRetroactiveOnDate(task.id, selectedDate)
+    }
+    
+    // 判断任务在选中日期是否完成（检查lastCompletedTime或补领历史）
+    val isCompletedOnDate = when {
+        isFutureDate -> false
+        isToday -> task.isCompleted
+        else -> {
+            val isCompletedByLastTime = task.lastCompletedTime?.let { lastCompleted ->
+                val completedCal = Calendar.getInstance(TimeZone.getTimeZone("Asia/Shanghai"))
+                completedCal.time = lastCompleted
+                isSameDay(selectedDate, completedCal)
+            } ?: false
+            isCompletedByLastTime || isRetroactiveOnDate
+        }
+    }
+    
+    // 只有指定任务可以补领，且补领次数<5，且该日期未补领过
+    val canRetroactive = isPastDate && !isCompletedOnDate && 
+            retroactiveTaskIds.contains(task.id) && retroactiveCount < 5
+    
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
@@ -315,22 +371,57 @@ private fun CalendarTaskItem(
                 Text(
                     text = task.title,
                     style = MaterialTheme.typography.titleMedium,
-                    color = if (task.isCompleted) Color.Gray else MaterialTheme.colorScheme.onSurface
+                    color = if (isCompletedOnDate) Color.Gray else MaterialTheme.colorScheme.onSurface
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = "奖励：${task.reward} 积分",
                     style = MaterialTheme.typography.bodySmall,
-                    color = if (task.isCompleted) Color.Gray else Color(0xFF00C853)
+                    color = if (isCompletedOnDate) Color.Gray else Color(0xFF00C853)
                 )
+                // 只有可以补领的任务才显示补领次数
+                if (isPastDate && !isCompletedOnDate && retroactiveTaskIds.contains(task.id)) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "本月补领次数：$retroactiveCount/5",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.secondary
+                    )
+                }
             }
             
-            Button(
-                onClick = onComplete,
-                enabled = !task.isCompleted,
-                modifier = Modifier.size(width = 100.dp, height = 40.dp)
-            ) {
-                Text(if (task.isCompleted) "已完成" else "完成")
+            when {
+                isCompletedOnDate -> {
+                    Text(
+                        text = "已完成",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color(0xFF4CAF50),
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+                canRetroactive -> {
+                    Button(
+                        onClick = {
+                            onRetroactiveComplete()
+                            retroactiveCount++
+                            isRetroactiveOnDate = true
+                        },
+                        modifier = Modifier.size(width = 100.dp, height = 40.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.tertiary
+                        )
+                    ) {
+                        Text("补领")
+                    }
+                }
+                else -> {
+                    Text(
+                        text = "未完成",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color(0xFFFF9800),
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
             }
         }
     }

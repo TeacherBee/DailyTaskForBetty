@@ -24,8 +24,12 @@ import com.example.dailytaskforbetty.data.*
 
 class TaskViewModel(
     private val rewardDao: RewardDao,
-    private val taskDao: TaskDao
+    private val taskDao: TaskDao,
+    private val retroactiveHistoryDao: RetroactiveHistoryDao
 ) : ViewModel() {
+    
+    // 可以补领的任务ID列表
+    private val retroactiveTaskIds = listOf("task_drink", "task_drink_plus")
     // 任务列表：从数据库获取并转换为Task对象（替代原有的内存列表）
     private val _tasks = MutableStateFlow<List<Task>>(emptyList())
     val tasks: StateFlow<List<Task>> = _tasks
@@ -179,11 +183,88 @@ class TaskViewModel(
     // 完成任务：更新状态并计算下次刷新时间
     fun completeTask(taskId: String) {
         val currentTime = getBeijingTime()
+        completeTaskWithDate(taskId, currentTime)
+    }
+    
+    // 检查任务是否可以补领
+    suspend fun canRetroactiveTask(taskId: String, year: Int, month: Int): Boolean {
+        // 检查是否在允许补领的任务列表中
+        if (!retroactiveTaskIds.contains(taskId)) {
+            return false
+        }
+        // 检查补领次数
+        val count = retroactiveHistoryDao.getRetroactiveCount(taskId, year, month)
+        return count < 5
+    }
+    
+    // 获取任务的补领次数
+    suspend fun getRetroactiveCount(taskId: String, year: Int, month: Int): Int {
+        return retroactiveHistoryDao.getRetroactiveCount(taskId, year, month)
+    }
+    
+    // 检查任务在指定日期是否补领过
+    suspend fun isTaskRetroactiveOnDate(taskId: String, date: Calendar): Boolean {
+        val year = date.get(Calendar.YEAR)
+        val month = date.get(Calendar.MONTH) + 1
+        val day = date.get(Calendar.DAY_OF_MONTH)
+        
+        val histories = retroactiveHistoryDao.getRetroactiveCountForTask(taskId, year, month)
+        return histories.any { history ->
+            val historyCal = Calendar.getInstance(TimeZone.getTimeZone("Asia/Shanghai"))
+            historyCal.timeInMillis = history.retroactiveDate
+            historyCal.get(Calendar.DAY_OF_MONTH) == day
+        }
+    }
+    
+    // 补领任务：指定完成日期
+    fun completeTaskRetroactively(taskId: String, completedDate: Calendar) {
         viewModelScope.launch {
-            val targetTask = tasks.value.find { it.id == taskId && !it.isCompleted }
+            val year = completedDate.get(Calendar.YEAR)
+            val month = completedDate.get(Calendar.MONTH) + 1
+            
+            // 检查是否可以补领
+            if (!canRetroactiveTask(taskId, year, month)) {
+                return@launch
+            }
+            
+            val task = tasks.value.find { it.id == taskId }
+            
+            // 只记录补领历史，不修改任务状态
+            task?.let {
+                val history = RetroactiveHistoryEntity(
+                    taskId = taskId,
+                    taskTitle = it.title,
+                    retroactiveDate = completedDate.timeInMillis,
+                    year = year,
+                    month = month
+                )
+                retroactiveHistoryDao.insertRetroactiveHistory(history)
+                
+                // 1. 更新积分
+                val newTotal = _totalReward.value + it.reward
+                _totalReward.value = newTotal
+                rewardDao.insertOrReplaceTotalReward(TotalReward(amount = newTotal))
+
+                // 2. 记录积分历史
+                val timeStr = formatTime(completedDate.time)
+                val historyRecord = RewardHistory(
+                    type = "获得",
+                    amount = it.reward,
+                    reason = "补领任务：${it.title}",
+                    time = timeStr
+                )
+                rewardDao.insertRewardHistory(historyRecord)
+            }
+        }
+    }
+    
+    // 内部函数：完成任务（支持指定完成时间）
+    private fun completeTaskWithDate(taskId: String, completedTime: Date) {
+        viewModelScope.launch {
+            val targetTask = tasks.value.find { it.id == taskId }
             if (targetTask != null) {
-                // 如果是仅周日任务，检查当前是否是周日
-                if (targetTask.cycle == TaskCycle.SUNDAY_ONLY && !isSunday(currentTime)) {
+                // 如果是仅周日任务，检查完成日期是否是周日
+                if (targetTask.cycle == TaskCycle.SUNDAY_ONLY && !isSunday(completedTime)) {
                     return@launch // 不是周日，不执行完成操作
                 }
                 // 1. 更新积分
@@ -192,11 +273,11 @@ class TaskViewModel(
                 rewardDao.insertOrReplaceTotalReward(TotalReward(amount = newTotal))
 
                 // 2. 记录积分历史
-                val timeStr = formatTime(currentTime)
+                val timeStr = formatTime(completedTime)
                 val history = RewardHistory(
                     type = "获得",
                     amount = targetTask.reward,
-                    reason = "完成任务：${targetTask.title}",
+                    reason = "补领任务：${targetTask.title}",
                     time = timeStr
                 )
                 rewardDao.insertRewardHistory(history)
@@ -209,19 +290,19 @@ class TaskViewModel(
                         targetTask.copy(
                             isCompleted = true,
                             weeklyCompletedCount = newWeeklyCompletedCount,
-                            lastCompletedTime = currentTime,
+                            lastCompletedTime = completedTime,
                             nextRefreshTime = if (isFullyCompleted) {
-                                calculateNextRefreshTime(targetTask.cycle, currentTime)
+                                calculateNextRefreshTime(targetTask.cycle, completedTime)
                             } else {
-                                calculateNextRefreshTime(TaskCycle.DAILY, currentTime)
+                                calculateNextRefreshTime(TaskCycle.DAILY, completedTime)
                             }
                         )
                     }
                     else -> {
                         targetTask.copy(
                             isCompleted = true,
-                            lastCompletedTime = currentTime,
-                            nextRefreshTime = calculateNextRefreshTime(targetTask.cycle, currentTime)
+                            lastCompletedTime = completedTime,
+                            nextRefreshTime = calculateNextRefreshTime(targetTask.cycle, completedTime)
                         )
                     }
                 }

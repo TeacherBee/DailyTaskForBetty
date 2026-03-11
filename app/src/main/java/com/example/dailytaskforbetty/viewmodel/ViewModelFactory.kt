@@ -15,7 +15,8 @@ class ViewModelFactory(private val context: Context) : ViewModelProvider.Factory
         if (modelClass.isAssignableFrom(TaskViewModel::class.java)) {
             return TaskViewModel(
                 database.rewardDao(),
-                taskDao = database.taskDao()
+                taskDao = database.taskDao(),
+                retroactiveHistoryDao = database.retroactiveHistoryDao()
             ) as T
         }
         // 新增：支持ShopViewModel

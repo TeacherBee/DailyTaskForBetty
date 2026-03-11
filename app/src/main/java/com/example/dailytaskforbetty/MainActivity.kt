@@ -253,9 +253,11 @@ fun TaskAppPreview() {
     // 预览时使用模拟的Dao创建ViewModel，解决参数缺失问题
     val mockRewardDao = MockRewardDao()
     val mockTaskDao = MockTaskDao()
+    val mockRetroactiveHistoryDao = MockRetroactiveHistoryDao()
     val previewViewModel = TaskViewModel(
         rewardDao = mockRewardDao,
-        taskDao = mockTaskDao
+        taskDao = mockTaskDao,
+        retroactiveHistoryDao = mockRetroactiveHistoryDao
     )
     TaskApp(taskViewModel = previewViewModel)
 }
