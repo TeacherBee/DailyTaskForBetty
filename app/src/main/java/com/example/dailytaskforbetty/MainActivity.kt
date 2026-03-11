@@ -160,7 +160,8 @@ fun TaskTimeApp(context: Context) {
             composable(NavRoutes.MY_PRIZES_SCREEN) {
                 MyPrizesScreen(
                     navController = navController,
-                    shopViewModel = shopViewModel
+                    shopViewModel = shopViewModel,
+                    taskViewModel = taskViewModel
                 )
             }
             // 设置页面

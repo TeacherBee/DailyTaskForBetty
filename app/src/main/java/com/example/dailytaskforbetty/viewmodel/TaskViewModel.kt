@@ -327,4 +327,24 @@ class TaskViewModel(
             rewardDao.insertRewardHistory(history)
         }
     }
+
+    // 增加总奖励（供退货使用）
+    fun addReward(amount: Int, productName: String) {
+        viewModelScope.launch {
+            val newTotal = _totalReward.value + amount
+            _totalReward.value = newTotal
+
+            val totalEntity = TotalReward(amount = newTotal)
+            rewardDao.insertOrReplaceTotalReward(totalEntity)
+
+            val timeStr = formatTime(getBeijingTime())
+            val history = RewardHistory(
+                type = "获得",
+                amount = amount,
+                reason = "退货：$productName",
+                time = timeStr
+            )
+            rewardDao.insertRewardHistory(history)
+        }
+    }
 }

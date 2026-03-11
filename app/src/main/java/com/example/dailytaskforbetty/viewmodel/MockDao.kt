@@ -98,6 +98,9 @@ class MockRedeemedPrizeDao : RedeemedPrizeDao {
         // 模拟查询，返回null或找到的模拟实体（这里简单返回null）
         return null
     }
+
+    // 模拟删除已兑换奖品（空实现）
+    override suspend fun deleteRedeemedPrize(entity: RedeemedPrizeEntity) {}
 }
 
 class MockProductDao : ProductDao {

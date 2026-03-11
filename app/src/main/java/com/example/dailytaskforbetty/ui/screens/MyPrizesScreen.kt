@@ -14,6 +14,7 @@ import androidx.navigation.NavController
 import com.example.dailytaskforbetty.model.PrizeStatus
 import com.example.dailytaskforbetty.model.RedeemedPrize
 import com.example.dailytaskforbetty.viewmodel.ShopViewModel
+import com.example.dailytaskforbetty.viewmodel.TaskViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.foundation.clickable         // clickable
@@ -27,7 +28,8 @@ import androidx.navigation.compose.rememberNavController
 @Composable
 fun MyPrizesScreen(
     navController: NavController,
-    shopViewModel: ShopViewModel = viewModel()
+    shopViewModel: ShopViewModel = viewModel(),
+    taskViewModel: TaskViewModel = viewModel()
 ) {
     val redeemedPrizes by shopViewModel.redeemedPrizes.collectAsState(initial = emptyList())
 
@@ -97,7 +99,8 @@ fun MyPrizesScreen(
                     items(pendingPrizes) { prize ->
                         PrizeItem(
                             prize = prize,
-                            onConfirmReceived = { shopViewModel.confirmReceived(prize.id) }
+                            onConfirmReceived = { shopViewModel.confirmReceived(prize.id) },
+                            onReturn = { shopViewModel.returnPrize(prize.id, taskViewModel) }
                         )
                     }
                 }
@@ -116,7 +119,8 @@ fun MyPrizesScreen(
                     items(receivedPrizes) { prize ->
                         PrizeItem(
                             prize = prize,
-                            onConfirmReceived = { shopViewModel.confirmReceived(prize.id) }
+                            onConfirmReceived = { shopViewModel.confirmReceived(prize.id) },
+                            onReturn = { }
                         )
                     }
                 }
@@ -165,7 +169,8 @@ private fun CategorySection(
 @Composable
 private fun PrizeItem(
     prize: RedeemedPrize,
-    onConfirmReceived: () -> Unit
+    onConfirmReceived: () -> Unit,
+    onReturn: () -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -219,13 +224,38 @@ private fun PrizeItem(
                     fontWeight = FontWeight.SemiBold
                 )
 
-                // 确认收货按钮（仅待发货/已发货状态显示）
-                if (prize.status != PrizeStatus.RECEIVED) {
-                    Button(
-                        onClick = onConfirmReceived,
-                        modifier = Modifier.size(width = 120.dp, height = 36.dp)
-                    ) {
-                        Text("确认收货")
+                // 判断是否是红包类奖品
+                val isRedPacket = listOf(
+                    "每日暖心小小红包~",
+                    "随机小红包！",
+                    "随机中红包！！",
+                    "随机大红包！！！"
+                ).contains(prize.productName)
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    // 退货按钮（仅非红包且待发货状态显示）
+                    if (!isRedPacket && prize.status == PrizeStatus.PENDING_SHIPMENT) {
+                        Button(
+                            onClick = onReturn,
+                            modifier = Modifier.size(width = 80.dp, height = 36.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.error
+                            )
+                        ) {
+                            Text("退货")
+                        }
+                    }
+
+                    // 确认收货按钮（仅待发货/已发货状态显示）
+                    if (prize.status != PrizeStatus.RECEIVED) {
+                        Button(
+                            onClick = onConfirmReceived,
+                            modifier = Modifier.size(width = 120.dp, height = 36.dp)
+                        ) {
+                            Text("确认收货")
+                        }
                     }
                 }
             }

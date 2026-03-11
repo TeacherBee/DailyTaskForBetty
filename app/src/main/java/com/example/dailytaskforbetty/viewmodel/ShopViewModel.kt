@@ -318,4 +318,40 @@ class ShopViewModel(
             }
         }
     }
+
+    // 退货功能
+    fun returnPrize(prizeId: String, taskViewModel: TaskViewModel) {
+        viewModelScope.launch {
+            val prizeEntity = redeemedPrizeDao.getRedeemedPrizeById(prizeId)
+            if (prizeEntity != null) {
+                val prize = prizeEntity.toRedeemedPrize()
+                
+                // 判断是否是红包类奖品
+                val isRedPacket = listOf(
+                    "每日暖心小小红包~",
+                    "随机小红包！",
+                    "随机中红包！！",
+                    "随机大红包！！！"
+                ).contains(prize.productName)
+                
+                // 只允许退货非红包且未发货的商品
+                if (!isRedPacket && prize.status == PrizeStatus.PENDING_SHIPMENT) {
+                    // 1. 查找对应商品，增加库存
+                    val productEntities = productDao.observeAllProducts().first()
+                    val productEntity = productEntities.find { it.name == prize.productName }
+                    
+                    if (productEntity != null) {
+                        val updatedProduct = productEntity.copy(stock = productEntity.stock + 1)
+                        productDao.updateProduct(updatedProduct)
+                    }
+                    
+                    // 2. 返还积分
+                    taskViewModel.addReward(prize.productPrice, prize.productName)
+                    
+                    // 3. 删除已兑换的奖品记录
+                    redeemedPrizeDao.deleteRedeemedPrize(prizeEntity)
+                }
+            }
+        }
+    }
 }
