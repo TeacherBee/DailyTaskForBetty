@@ -174,10 +174,12 @@ fun MyScreenPreview() {
         // 1. 创建模拟的Dao
         val mockRewardDao = MockRewardDao()
         val mockTaskDao = MockTaskDao()
+        val mockRetroactiveHistoryDao = MockRetroactiveHistoryDao()
         // 2. 用模拟Dao创建TaskViewModel
         val previewTaskViewModel = TaskViewModel(
             rewardDao = mockRewardDao,
-            taskDao = mockTaskDao
+            taskDao = mockTaskDao,
+            retroactiveHistoryDao = mockRetroactiveHistoryDao
         )
         // 3. 如果UserViewModel有构造参数，也用模拟数据创建（这里假设它无参）
         val previewUserViewModel = UserViewModel()

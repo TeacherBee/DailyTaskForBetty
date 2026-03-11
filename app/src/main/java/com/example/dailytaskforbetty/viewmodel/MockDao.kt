@@ -45,7 +45,7 @@ class MockTaskDao : TaskDao {
                 title = "运动",
                 isCompleted = false,
                 reward = 15,
-                cycle = TaskCycle.WEEKLY,
+                cycle = TaskCycle.WEEKLY_5_TIMES,
                 lastCompletedTime = null,
                 nextRefreshTime = Date(mockTime + 604800000) // 7天后刷新
             ).toEntity()
@@ -98,6 +98,9 @@ class MockRedeemedPrizeDao : RedeemedPrizeDao {
         // 模拟查询，返回null或找到的模拟实体（这里简单返回null）
         return null
     }
+
+    // 模拟删除已兑换奖品（空实现）
+    override suspend fun deleteRedeemedPrize(entity: RedeemedPrizeEntity) {}
 }
 
 class MockProductDao : ProductDao {
@@ -194,4 +197,22 @@ class MockRedPacketDao : RedPacketDao {
 
     // 模拟插入红包历史
     override suspend fun insertRedPacketHistory(history: RedPacketHistoryEntity) {}
+}
+
+class MockRetroactiveHistoryDao : RetroactiveHistoryDao {
+    override suspend fun insertRetroactiveHistory(history: RetroactiveHistoryEntity) {}
+    
+    override suspend fun getRetroactiveCountForTask(taskId: String, year: Int, month: Int): List<RetroactiveHistoryEntity> {
+        return emptyList()
+    }
+    
+    override suspend fun getRetroactiveCount(taskId: String, year: Int, month: Int): Int {
+        return 0
+    }
+    
+    override fun observeAllRetroactiveHistories(): Flow<List<RetroactiveHistoryEntity>> {
+        return flowOf(emptyList())
+    }
+    
+    override suspend fun deleteRetroactiveHistory(history: RetroactiveHistoryEntity) {}
 }

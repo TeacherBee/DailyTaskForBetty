@@ -34,7 +34,7 @@ class ShopViewModel(
     private val _products = MutableStateFlow<List<Product>>(emptyList())
     val products: StateFlow<List<Product>> = _products
 
-    // 初始化商品数据（首次运行时）
+    // 初始化商品数据（确保所有预设商品都存在）
     init {
         viewModelScope.launch {
 //            Log.d("ShopViewModel", "开始初始化商品数据...")
@@ -46,96 +46,107 @@ class ShopViewModel(
                 }
             }
 
+            // 初始化时间对齐到当天0点
+            val calendar = Calendar.getInstance(TimeZone.getTimeZone("Asia/Shanghai")).apply {
+                set(Calendar.HOUR_OF_DAY, 0)
+                set(Calendar.MINUTE, 0)
+                set(Calendar.SECOND, 0)
+                set(Calendar.MILLISECOND, 0)
+            }
+            val initTime = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.CHINA).format(calendar.time)
+
+            // 定义所有预设商品
+            val allPresetProducts = listOf(
+                Product(
+                    id = "product_daily_redpacket",
+                    name = "每日暖心小小红包~",
+                    price = 0,
+                    stock = 1,
+                    refreshCycle = StockRefreshCycle.DAILY,
+                    lastRefreshTime = initTime,
+                    initialStock = 1
+                ),
+                Product(
+                    id = "product_small_redpacket",
+                    name = "随机小红包！",
+                    price = 10,
+                    stock = 3,
+                    refreshCycle = StockRefreshCycle.DAILY,
+                    lastRefreshTime = initTime,
+                    initialStock = 3
+                ),
+                Product(
+                    id = "product_medium_redpacket",
+                    name = "随机中红包！！",
+                    price = 30,
+                    stock = 1,
+                    refreshCycle = StockRefreshCycle.THREE_DAYS,
+                    lastRefreshTime = initTime,
+                    initialStock = 1
+                ),
+                Product(
+                    id = "product_large_redpacket",
+                    name = "随机大红包！！！",
+                    price = 70,
+                    stock = 1,
+                    refreshCycle = StockRefreshCycle.WEEKLY,
+                    lastRefreshTime = initTime,
+                    initialStock = 1
+                ),
+                Product(
+                    id = "product_gift_box",
+                    name = "惊喜小礼盒OVO",
+                    price = 15,
+                    stock = 2,
+                    refreshCycle = StockRefreshCycle.DAILY,
+                    lastRefreshTime = initTime,
+                    initialStock = 2
+                ),
+                Product(
+                    id = "product_takeaway",
+                    name = "可口外卖QAQ",
+                    price = 20,
+                    stock = 1,
+                    refreshCycle = StockRefreshCycle.DAILY,
+                    lastRefreshTime = initTime,
+                    initialStock = 1
+                ),
+                Product(
+                    id = "product_feast",
+                    name = "劲爆大餐^_^ ",
+                    price = 60,
+                    stock = 1,
+                    refreshCycle = StockRefreshCycle.THREE_DAYS,
+                    lastRefreshTime = initTime,
+                    initialStock = 1
+                ),
+                Product(
+                    id = "product_flash",
+                    name = "闪现",
+                    price = 0,
+                    stock = 1,
+                    refreshCycle = StockRefreshCycle.NONE,
+                    lastRefreshTime = initTime,
+                    initialStock = 1
+                ),
+                Product(
+                    id = "product_test",
+                    name = "测试，兑换无用捏",
+                    price = 0,
+                    stock = 99,
+                    refreshCycle = StockRefreshCycle.NONE,
+                    lastRefreshTime = initTime,
+                    initialStock = 99
+                )
+            )
+
             val existingProducts = productDao.observeAllProducts().first()
-//            Log.d("ShopViewModel", "现有商品数量：${existingProducts.size}") // 关键日志
-//            Log.d("ShopViewModel", "是否需要插入默认商品：${existingProducts.isEmpty()}")
-            if (existingProducts.isEmpty()) {
-                // 初始化时间对齐到当天0点
-                val calendar = Calendar.getInstance(TimeZone.getTimeZone("Asia/Shanghai")).apply {
-                    set(Calendar.HOUR_OF_DAY, 0)
-                    set(Calendar.MINUTE, 0)
-                    set(Calendar.SECOND, 0)
-                    set(Calendar.MILLISECOND, 0)
-                }
-                val initTime = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.CHINA).format(calendar.time)
-
-                // 插入默认商品（配置刷新规则）
-                val defaultProducts = listOf(
-                    Product(
-                        id = UUID.randomUUID().toString(),
-                        name = "每日暖心小小红包~",
-                        price = 0,
-                        stock = 1,
-                        refreshCycle = StockRefreshCycle.DAILY,  // 每日
-                        lastRefreshTime = initTime,
-                        initialStock = 1
-                    ),
-                    Product(
-                        id = UUID.randomUUID().toString(),
-                        name = "随机小红包！",
-                        price = 10,
-                        stock = 3,
-                        refreshCycle = StockRefreshCycle.DAILY,  // 每日
-                        lastRefreshTime = initTime,
-                        initialStock = 3
-                    ),
-                    Product(
-                        id = UUID.randomUUID().toString(),
-                        name = "随机中红包！！",
-                        price = 30,
-                        stock = 1,
-                        refreshCycle = StockRefreshCycle.THREE_DAYS, // 每三天
-                        lastRefreshTime = initTime,
-                        initialStock = 1
-                    ),
-                    Product(
-                        id = UUID.randomUUID().toString(),
-                        name = "随机大红包！！！",
-                        price = 70,
-                        stock = 1,
-                        refreshCycle = StockRefreshCycle.WEEKLY, // 每周
-                        lastRefreshTime = initTime,
-                        initialStock = 1
-                    ),
-                    Product(
-                        id = UUID.randomUUID().toString(),
-                        name = "惊喜小礼盒OVO",
-                        price = 15,
-                        stock = 2,
-                        refreshCycle = StockRefreshCycle.DAILY,
-                        lastRefreshTime = initTime,
-                        initialStock = 2
-                    ),
-                    Product(
-                        id = UUID.randomUUID().toString(),
-                        name = "可口外卖QAQ",
-                        price = 20,
-                        stock = 1,
-                        refreshCycle = StockRefreshCycle.DAILY,
-                        lastRefreshTime = initTime,
-                        initialStock = 1
-                    ),
-                    Product(
-                        id = UUID.randomUUID().toString(),
-                        name = "劲爆大餐^_^ ",
-                        price = 60,
-                        stock = 1,
-                        refreshCycle = StockRefreshCycle.THREE_DAYS,
-                        lastRefreshTime = initTime,
-                        initialStock = 1
-                    ),
-                    Product(
-                        id = UUID.randomUUID().toString(),
-                        name = "闪现",
-                        price = 0,
-                        stock = 1,
-                        refreshCycle = StockRefreshCycle.NONE,
-                        lastRefreshTime = initTime,
-                        initialStock = 1
-                    )
-                ).map { it.toEntity() }
-
-                productDao.insertProducts(defaultProducts)
+            val existingProductIds = existingProducts.map { it.id }.toSet()
+            
+            // 找出缺失的商品并插入
+            val missingProducts = allPresetProducts.filter { !existingProductIds.contains(it.id) }
+            if (missingProducts.isNotEmpty()) {
+                productDao.insertProducts(missingProducts.map { it.toEntity() })
             }
         }
         // 启动库存刷新检查（应用启动后开始）
@@ -252,8 +263,8 @@ class ShopViewModel(
     // 处理红包兑现
     private suspend fun handleRedPacketRedeem(productName: String, time: String) {
         val amount = when (productName) {
-            "每日暖心小小红包~" -> 0.52 // 固定金额
-            "随机小红包！"   -> Random.nextDouble(0.01, 18.88 + 0.01)   // 左闭右开
+            "每日暖心小小红包~" -> 1.34 // 固定金额
+            "随机小红包！"   -> Random.nextDouble(8.88, 18.88 + 0.01)   // 左闭右开
             "随机中红包！！"  -> Random.nextDouble(28.88, 58.88 + 0.01)
             "随机大红包！！！" -> Random.nextDouble(68.88, 138.88 + 0.01)
             else -> 0.0 // 非红包类奖品不处理
@@ -315,6 +326,43 @@ class ShopViewModel(
             if (entity != null) {
                 val updated = entity.copy(status = PrizeStatus.RECEIVED.name)
                 redeemedPrizeDao.updateRedeemedPrize(updated)
+            }
+        }
+    }
+
+    // 退货功能
+    fun returnPrize(prizeId: String, taskViewModel: TaskViewModel) {
+        viewModelScope.launch {
+            val prizeEntity = redeemedPrizeDao.getRedeemedPrizeById(prizeId)
+            if (prizeEntity != null) {
+                val prize = prizeEntity.toRedeemedPrize()
+                
+                // 判断是否是红包类奖品
+                val isRedPacket = listOf(
+                    "每日暖心小小红包~",
+                    "随机小红包！",
+                    "随机中红包！！",
+                    "随机大红包！！！"
+                ).contains(prize.productName)
+                
+                // 只允许退货非红包且未发货的商品
+                if (!isRedPacket && prize.status == PrizeStatus.PENDING_SHIPMENT) {
+                    // 1. 查找对应商品，增加库存
+                    val productEntities = productDao.observeAllProducts().first()
+                    val productEntity = productEntities.find { it.name == prize.productName }
+                    
+                    if (productEntity != null) {
+                        val updatedProduct = productEntity.copy(stock = productEntity.stock + 1)
+                        productDao.updateProduct(updatedProduct)
+                    }
+                    
+                    // 2. 返还积分
+                    taskViewModel.addReward(prize.productPrice, prize.productName)
+                    
+                    // 3. 更新奖品状态为已退货，而不是删除记录
+                    val updatedPrize = prizeEntity.copy(status = PrizeStatus.RETURNED.name)
+                    redeemedPrizeDao.updateRedeemedPrize(updatedPrize)
+                }
             }
         }
     }

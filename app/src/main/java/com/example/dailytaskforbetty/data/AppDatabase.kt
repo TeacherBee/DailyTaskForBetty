@@ -15,9 +15,10 @@ import com.example.dailytaskforbetty.model.*
         RedeemedPrizeEntity::class,
         ProductEntity::class,
         RedPacketBalanceEntity::class,
-        RedPacketHistoryEntity::class
+        RedPacketHistoryEntity::class,
+        RetroactiveHistoryEntity::class
     ], // 关联的实体类
-    version = 5, // 修改entities后（即修改数据库schema），需要升级version，否则会校验失败导致闪退
+    version = 7, // 修改entities后（即修改数据库schema），需要升级version，否则会校验失败导致闪退
     exportSchema = false // 简化示例，不导出数据库schema
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -27,6 +28,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun redeemedPrizeDao(): RedeemedPrizeDao
     abstract fun productDao(): ProductDao
     abstract fun redPacketDao(): RedPacketDao
+    abstract fun retroactiveHistoryDao(): RetroactiveHistoryDao
 
     // 单例模式，避免重复创建数据库实例
     companion object {

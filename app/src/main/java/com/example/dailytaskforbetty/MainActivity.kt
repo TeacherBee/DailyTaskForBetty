@@ -9,6 +9,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Watch
 import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -125,6 +126,10 @@ fun TaskTimeApp(context: Context) {
             composable(NavRoutes.TIME_SCREEN) {
                 TimeScreen() // 时间显示功能
             }
+            // 日历页面
+            composable(NavRoutes.CALENDAR_SCREEN) {
+                CalendarScreen(taskViewModel = taskViewModel) // 日历功能
+            }
             // 商店页面，传入共享的taskViewModel
             composable(NavRoutes.SHOP_SCREEN) {
                 ShopScreen(
@@ -160,7 +165,8 @@ fun TaskTimeApp(context: Context) {
             composable(NavRoutes.MY_PRIZES_SCREEN) {
                 MyPrizesScreen(
                     navController = navController,
-                    shopViewModel = shopViewModel
+                    shopViewModel = shopViewModel,
+                    taskViewModel = taskViewModel
                 )
             }
             // 设置页面
@@ -179,6 +185,11 @@ fun BottomNavigationBar(navController: NavController) {
             icon = Icons.Default.Watch,
             label = "时间",
             route = NavRoutes.TIME_SCREEN
+        ),
+        NavigationItem(
+            icon = Icons.Default.DateRange,
+            label = "日历",
+            route = NavRoutes.CALENDAR_SCREEN
         ),
         NavigationItem(
             icon = Icons.Default.List,
@@ -242,9 +253,11 @@ fun TaskAppPreview() {
     // 预览时使用模拟的Dao创建ViewModel，解决参数缺失问题
     val mockRewardDao = MockRewardDao()
     val mockTaskDao = MockTaskDao()
+    val mockRetroactiveHistoryDao = MockRetroactiveHistoryDao()
     val previewViewModel = TaskViewModel(
         rewardDao = mockRewardDao,
-        taskDao = mockTaskDao
+        taskDao = mockTaskDao,
+        retroactiveHistoryDao = mockRetroactiveHistoryDao
     )
     TaskApp(taskViewModel = previewViewModel)
 }

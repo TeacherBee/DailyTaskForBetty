@@ -4,5 +4,6 @@ package com.example.dailytaskforbetty.model
 enum class PrizeStatus {
     PENDING_SHIPMENT, // 待发货
     SHIPPED,          // 已发货
-    RECEIVED          // 已收货
+    RECEIVED,         // 已收货
+    RETURNED          // 已退货
 }

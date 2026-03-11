@@ -17,6 +17,10 @@ data class TaskEntity(
     // 时间用Long类型存储（时间戳，便于数据库操作）
     val lastCompletedTime: Long?,
     val nextRefreshTime: Long,
+    // 每周目标完成次数
+    val weeklyTarget: Int = 5,
+    // 本周已完成次数
+    val weeklyCompletedCount: Int = 0,
     // 新增字段：任务创建时间（用于排序）
     val createTime: Long = System.currentTimeMillis()
 )

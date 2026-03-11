@@ -21,6 +21,7 @@ import com.example.dailytaskforbetty.viewmodel.TaskViewModel
 import androidx.compose.ui.tooling.preview.Preview
 import java.text.SimpleDateFormat
 import java.util.*
+import com.example.dailytaskforbetty.model.TaskCycle
 
 // 任务列表页面组件
 @Composable
@@ -64,6 +65,12 @@ fun TaskScreen(
     }
 }
 
+// 检查是否是周日
+private fun isSunday(): Boolean {
+    val calendar = Calendar.getInstance(TimeZone.getTimeZone("Asia/Shanghai"))
+    return calendar.get(Calendar.DAY_OF_WEEK) == Calendar.SUNDAY
+}
+
 // 预设任务项UI（显示标题、奖励、下次刷新时间、完成按钮）
 @Composable
 internal fun PresetTaskItem(
@@ -72,6 +79,9 @@ internal fun PresetTaskItem(
     onComplete: () -> Unit
 ) {
     val isCompleted = task.isCompleted
+    val isSundayToday = isSunday()
+    val isSundayOnly = task.cycle == TaskCycle.SUNDAY_ONLY
+    val canComplete = !isCompleted && (!isSundayOnly || isSundayToday)
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
@@ -98,6 +108,22 @@ internal fun PresetTaskItem(
                     color = if (isCompleted) Color.Gray else Color(0xFF00C853)
                 )
                 Spacer(modifier = Modifier.height(4.dp))
+                if (task.cycle == TaskCycle.WEEKLY_5_TIMES) {
+                    Text(
+                        text = "本周进度：${task.weeklyCompletedCount}/${task.weeklyTarget}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                }
+                if (isSundayOnly && !isSundayToday) {
+                    Text(
+                        text = "仅周日可完成",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                }
                 Text(
                     text = "下次刷新：$formattedNextRefresh",
                     style = MaterialTheme.typography.bodySmall,
@@ -105,10 +131,10 @@ internal fun PresetTaskItem(
                 )
             }
 
-            // 完成按钮（已完成则禁用）
+            // 完成按钮（已完成或不是周日则禁用）
             Button(
                 onClick = onComplete,
-                enabled = !isCompleted,
+                enabled = canComplete,
                 modifier = Modifier.size(width = 100.dp, height = 40.dp)
             ) {
                 Text(if (isCompleted) "已完成" else "完成")

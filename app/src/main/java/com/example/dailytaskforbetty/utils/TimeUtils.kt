@@ -37,6 +37,26 @@ object TimeUtils {
                 calendar.set(Calendar.MILLISECOND, 0)
                 calendar.time
             }
+            TaskCycle.WEEKLY_5_TIMES -> {
+                calendar.add(Calendar.WEEK_OF_YEAR, 1)
+                calendar.set(Calendar.HOUR_OF_DAY, 0)
+                calendar.set(Calendar.MINUTE, 0)
+                calendar.set(Calendar.SECOND, 0)
+                calendar.set(Calendar.MILLISECOND, 0)
+                calendar.time
+            }
+            TaskCycle.SUNDAY_ONLY -> {
+                // 如果已经是周日，刷新时间为下周日
+                if (calendar.get(Calendar.DAY_OF_WEEK) == Calendar.SUNDAY) {
+                    calendar.add(Calendar.WEEK_OF_YEAR, 1)
+                }
+                calendar.set(Calendar.DAY_OF_WEEK, Calendar.SUNDAY)
+                calendar.set(Calendar.HOUR_OF_DAY, 0)
+                calendar.set(Calendar.MINUTE, 0)
+                calendar.set(Calendar.SECOND, 0)
+                calendar.set(Calendar.MILLISECOND, 0)
+                calendar.time
+            }
         }
     }
 

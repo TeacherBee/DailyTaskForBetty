@@ -24,8 +24,12 @@ import com.example.dailytaskforbetty.data.*
 
 class TaskViewModel(
     private val rewardDao: RewardDao,
-    private val taskDao: TaskDao
+    private val taskDao: TaskDao,
+    private val retroactiveHistoryDao: RetroactiveHistoryDao
 ) : ViewModel() {
+    
+    // 可以补领的任务ID列表
+    private val retroactiveTaskIds = listOf("task_drink", "task_drink_plus")
     // 任务列表：从数据库获取并转换为Task对象（替代原有的内存列表）
     private val _tasks = MutableStateFlow<List<Task>>(emptyList())
     val tasks: StateFlow<List<Task>> = _tasks
@@ -75,43 +79,58 @@ class TaskViewModel(
         }
     }
 
-    // 初始化任务：若数据库为空则插入预设任务
+    // 初始化任务：确保所有预设任务都存在
     private fun loadInitialTasks() {
         viewModelScope.launch {
             val existingTasks = taskDao.observeAllTasks().first()  // 获取当前数据库任务
-            if (existingTasks.isEmpty()) {
-                // 插入预设任务（转换为Entity）
-                val initialTasks = listOf(
-                    Task(
-                        id = "task_drink",
-                        title = "喝水（多喝点吧，球球啦~）",
-                        isCompleted = false,
-                        reward = 1,
-                        cycle = TaskCycle.DAILY,
-                        lastCompletedTime = null,
-                        nextRefreshTime = calculateNextRefreshTime(TaskCycle.DAILY, null)
-                    ),
-                    Task(
-                        id = "task_drink_plus",
-                        title = "喝水（加点蜂蜜，对嗓子更好哦~）",
-                        isCompleted = false,
-                        reward = 1,
-                        cycle = TaskCycle.DAILY,
-                        lastCompletedTime = null,
-                        nextRefreshTime = calculateNextRefreshTime(TaskCycle.DAILY, null)
-                    ),
-                    Task(
-                        id = "task_exercise",
-                        title = "运动（不管是跳操还是跳舞！动起来！）",
-                        isCompleted = false,
-                        reward = 5,
-                        cycle = TaskCycle.THREE_DAYS,
-                        lastCompletedTime = null,
-                        nextRefreshTime = calculateNextRefreshTime(TaskCycle.THREE_DAYS, null),
-                    )
-                ).map { it.toEntity() }  // 转换为Entity
-
-                taskDao.upsertTasks(initialTasks)  // 批量插入数据库
+            val existingTaskIds = existingTasks.map { it.id }.toSet()
+            
+            // 定义所有预设任务
+            val allPresetTasks = listOf(
+                Task(
+                    id = "task_drink",
+                    title = "喝水（多喝点吧，球球啦~）",
+                    isCompleted = false,
+                    reward = 1,
+                    cycle = TaskCycle.DAILY,
+                    lastCompletedTime = null,
+                    nextRefreshTime = calculateNextRefreshTime(TaskCycle.DAILY, null)
+                ),
+                Task(
+                    id = "task_drink_plus",
+                    title = "喝水（加点蜂蜜，对嗓子更好哦~）",
+                    isCompleted = false,
+                    reward = 1,
+                    cycle = TaskCycle.DAILY,
+                    lastCompletedTime = null,
+                    nextRefreshTime = calculateNextRefreshTime(TaskCycle.DAILY, null)
+                ),
+                Task(
+                    id = "task_exercise",
+                    title = "运动（不管是跳操还是跳舞！动起来！）",
+                    isCompleted = false,
+                    reward = 5,
+                    cycle = TaskCycle.WEEKLY_5_TIMES,
+                    lastCompletedTime = null,
+                    nextRefreshTime = calculateNextRefreshTime(TaskCycle.WEEKLY_5_TIMES, null),
+                    weeklyTarget = 5,
+                    weeklyCompletedCount = 0
+                ),
+                Task(
+                    id = "task_no_xx",
+                    title = "一周不吃xx，你懂得~",
+                    isCompleted = false,
+                    reward = 30,
+                    cycle = TaskCycle.SUNDAY_ONLY,
+                    lastCompletedTime = null,
+                    nextRefreshTime = calculateNextRefreshTime(TaskCycle.SUNDAY_ONLY, null)
+                )
+            )
+            
+            // 找出缺失的任务并插入
+            val missingTasks = allPresetTasks.filter { !existingTaskIds.contains(it.id) }
+            if (missingTasks.isNotEmpty()) {
+                taskDao.upsertTasks(missingTasks.map { it.toEntity() })
             }
         }
     }
@@ -123,11 +142,29 @@ class TaskViewModel(
             val latestTasks = taskDao.observeAllTasks().first().map { it.toTask() }
             val updatedTasks = latestTasks.map { task ->
                 if (currentTime.after(task.nextRefreshTime)) {
-                    task.copy(
-                        isCompleted = false,
-                        lastCompletedTime = null,
-                        nextRefreshTime = calculateNextRefreshTime(task.cycle, null)
-                    )
+                    when (task.cycle) {
+                        TaskCycle.WEEKLY_5_TIMES -> {
+                            task.copy(
+                                isCompleted = false,
+                                weeklyCompletedCount = 0,
+                                nextRefreshTime = calculateNextRefreshTime(task.cycle, null)
+                            )
+                        }
+                        TaskCycle.SUNDAY_ONLY -> {
+                            task.copy(
+                                isCompleted = false,
+                                lastCompletedTime = null,
+                                nextRefreshTime = calculateNextRefreshTime(task.cycle, null)
+                            )
+                        }
+                        else -> {
+                            task.copy(
+                                isCompleted = false,
+                                lastCompletedTime = null,
+                                nextRefreshTime = calculateNextRefreshTime(task.cycle, null)
+                            )
+                        }
+                    }
                 } else {
                     task
                 }
@@ -136,33 +173,139 @@ class TaskViewModel(
         }
     }
 
+    // 检查是否是周日
+    private fun isSunday(date: Date): Boolean {
+        val calendar = Calendar.getInstance(TimeZone.getTimeZone("Asia/Shanghai"))
+        calendar.time = date
+        return calendar.get(Calendar.DAY_OF_WEEK) == Calendar.SUNDAY
+    }
+
     // 完成任务：更新状态并计算下次刷新时间
     fun completeTask(taskId: String) {
         val currentTime = getBeijingTime()
+        completeTaskWithDate(taskId, currentTime)
+    }
+    
+    // 检查任务是否可以补领
+    suspend fun canRetroactiveTask(taskId: String, year: Int, month: Int): Boolean {
+        // 检查是否在允许补领的任务列表中
+        if (!retroactiveTaskIds.contains(taskId)) {
+            return false
+        }
+        // 检查补领次数
+        val count = retroactiveHistoryDao.getRetroactiveCount(taskId, year, month)
+        return count < 5
+    }
+    
+    // 获取任务的补领次数
+    suspend fun getRetroactiveCount(taskId: String, year: Int, month: Int): Int {
+        return retroactiveHistoryDao.getRetroactiveCount(taskId, year, month)
+    }
+    
+    // 检查任务在指定日期是否补领过
+    suspend fun isTaskRetroactiveOnDate(taskId: String, date: Calendar): Boolean {
+        val year = date.get(Calendar.YEAR)
+        val month = date.get(Calendar.MONTH) + 1
+        val day = date.get(Calendar.DAY_OF_MONTH)
+        
+        val histories = retroactiveHistoryDao.getRetroactiveCountForTask(taskId, year, month)
+        return histories.any { history ->
+            val historyCal = Calendar.getInstance(TimeZone.getTimeZone("Asia/Shanghai"))
+            historyCal.timeInMillis = history.retroactiveDate
+            historyCal.get(Calendar.DAY_OF_MONTH) == day
+        }
+    }
+    
+    // 补领任务：指定完成日期
+    fun completeTaskRetroactively(taskId: String, completedDate: Calendar) {
         viewModelScope.launch {
-            val targetTask = tasks.value.find { it.id == taskId && !it.isCompleted }
+            val year = completedDate.get(Calendar.YEAR)
+            val month = completedDate.get(Calendar.MONTH) + 1
+            
+            // 检查是否可以补领
+            if (!canRetroactiveTask(taskId, year, month)) {
+                return@launch
+            }
+            
+            val task = tasks.value.find { it.id == taskId }
+            
+            // 只记录补领历史，不修改任务状态
+            task?.let {
+                val history = RetroactiveHistoryEntity(
+                    taskId = taskId,
+                    taskTitle = it.title,
+                    retroactiveDate = completedDate.timeInMillis,
+                    year = year,
+                    month = month
+                )
+                retroactiveHistoryDao.insertRetroactiveHistory(history)
+                
+                // 1. 更新积分
+                val newTotal = _totalReward.value + it.reward
+                _totalReward.value = newTotal
+                rewardDao.insertOrReplaceTotalReward(TotalReward(amount = newTotal))
+
+                // 2. 记录积分历史
+                val timeStr = formatTime(completedDate.time)
+                val historyRecord = RewardHistory(
+                    type = "获得",
+                    amount = it.reward,
+                    reason = "补领任务：${it.title}",
+                    time = timeStr
+                )
+                rewardDao.insertRewardHistory(historyRecord)
+            }
+        }
+    }
+    
+    // 内部函数：完成任务（支持指定完成时间）
+    private fun completeTaskWithDate(taskId: String, completedTime: Date) {
+        viewModelScope.launch {
+            val targetTask = tasks.value.find { it.id == taskId }
             if (targetTask != null) {
+                // 如果是仅周日任务，检查完成日期是否是周日
+                if (targetTask.cycle == TaskCycle.SUNDAY_ONLY && !isSunday(completedTime)) {
+                    return@launch // 不是周日，不执行完成操作
+                }
                 // 1. 更新积分
                 val newTotal = _totalReward.value + targetTask.reward
                 _totalReward.value = newTotal
                 rewardDao.insertOrReplaceTotalReward(TotalReward(amount = newTotal))
 
                 // 2. 记录积分历史
-                val timeStr = formatTime(currentTime)
+                val timeStr = formatTime(completedTime)
                 val history = RewardHistory(
                     type = "获得",
                     amount = targetTask.reward,
-                    reason = "完成任务：${targetTask.title}",
+                    reason = "补领任务：${targetTask.title}",
                     time = timeStr
                 )
                 rewardDao.insertRewardHistory(history)
 
                 // 3. 更新任务状态并同步到数据库
-                val updatedTask = targetTask.copy(
-                    isCompleted = true,
-                    lastCompletedTime = currentTime,
-                    nextRefreshTime = calculateNextRefreshTime(targetTask.cycle, currentTime)
-                )
+                val updatedTask = when (targetTask.cycle) {
+                    TaskCycle.WEEKLY_5_TIMES -> {
+                        val newWeeklyCompletedCount = targetTask.weeklyCompletedCount + 1
+                        val isFullyCompleted = newWeeklyCompletedCount >= targetTask.weeklyTarget
+                        targetTask.copy(
+                            isCompleted = true,
+                            weeklyCompletedCount = newWeeklyCompletedCount,
+                            lastCompletedTime = completedTime,
+                            nextRefreshTime = if (isFullyCompleted) {
+                                calculateNextRefreshTime(targetTask.cycle, completedTime)
+                            } else {
+                                calculateNextRefreshTime(TaskCycle.DAILY, completedTime)
+                            }
+                        )
+                    }
+                    else -> {
+                        targetTask.copy(
+                            isCompleted = true,
+                            lastCompletedTime = completedTime,
+                            nextRefreshTime = calculateNextRefreshTime(targetTask.cycle, completedTime)
+                        )
+                    }
+                }
                 taskDao.upsertTask(updatedTask.toEntity())  // 单个任务更新
             }
         }
@@ -193,6 +336,27 @@ class TaskViewModel(
             }
             TaskCycle.WEEKLY -> {
                 calendar.add(Calendar.WEEK_OF_YEAR, 1)
+                calendar.set(Calendar.HOUR_OF_DAY, 0)
+                calendar.set(Calendar.MINUTE, 0)
+                calendar.set(Calendar.SECOND, 0)
+                calendar.set(Calendar.MILLISECOND, 0)
+                calendar.time
+            }
+            TaskCycle.WEEKLY_5_TIMES -> {
+                calendar.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY)
+                calendar.add(Calendar.WEEK_OF_YEAR, 1)
+                calendar.set(Calendar.HOUR_OF_DAY, 0)
+                calendar.set(Calendar.MINUTE, 0)
+                calendar.set(Calendar.SECOND, 0)
+                calendar.set(Calendar.MILLISECOND, 0)
+                calendar.time
+            }
+            TaskCycle.SUNDAY_ONLY -> {
+                // 如果已经是周日，刷新时间为下周日
+                if (calendar.get(Calendar.DAY_OF_WEEK) == Calendar.SUNDAY) {
+                    calendar.add(Calendar.WEEK_OF_YEAR, 1)
+                }
+                calendar.set(Calendar.DAY_OF_WEEK, Calendar.SUNDAY)
                 calendar.set(Calendar.HOUR_OF_DAY, 0)
                 calendar.set(Calendar.MINUTE, 0)
                 calendar.set(Calendar.SECOND, 0)
@@ -239,6 +403,26 @@ class TaskViewModel(
                 type = "消耗",
                 amount = amount,
                 reason = "兑换：$productName",
+                time = timeStr
+            )
+            rewardDao.insertRewardHistory(history)
+        }
+    }
+
+    // 增加总奖励（供退货使用）
+    fun addReward(amount: Int, productName: String) {
+        viewModelScope.launch {
+            val newTotal = _totalReward.value + amount
+            _totalReward.value = newTotal
+
+            val totalEntity = TotalReward(amount = newTotal)
+            rewardDao.insertOrReplaceTotalReward(totalEntity)
+
+            val timeStr = formatTime(getBeijingTime())
+            val history = RewardHistory(
+                type = "获得",
+                amount = amount,
+                reason = "退货：$productName",
                 time = timeStr
             )
             rewardDao.insertRewardHistory(history)

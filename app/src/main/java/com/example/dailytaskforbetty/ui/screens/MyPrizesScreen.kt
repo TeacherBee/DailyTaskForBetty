@@ -14,6 +14,7 @@ import androidx.navigation.NavController
 import com.example.dailytaskforbetty.model.PrizeStatus
 import com.example.dailytaskforbetty.model.RedeemedPrize
 import com.example.dailytaskforbetty.viewmodel.ShopViewModel
+import com.example.dailytaskforbetty.viewmodel.TaskViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.foundation.clickable         // clickable
@@ -27,7 +28,8 @@ import androidx.navigation.compose.rememberNavController
 @Composable
 fun MyPrizesScreen(
     navController: NavController,
-    shopViewModel: ShopViewModel = viewModel()
+    shopViewModel: ShopViewModel = viewModel(),
+    taskViewModel: TaskViewModel = viewModel()
 ) {
     val redeemedPrizes by shopViewModel.redeemedPrizes.collectAsState(initial = emptyList())
 
@@ -41,9 +43,9 @@ fun MyPrizesScreen(
         ).contains(prize.productName)
     }
 
-    // 区分已收货和未收货
-    val receivedPrizes = filteredPrizes.filter { it.status == PrizeStatus.RECEIVED }
-    val pendingPrizes = filteredPrizes.filter { it.status != PrizeStatus.RECEIVED }
+    // 区分已收货/已退货和未收货
+    val receivedPrizes = filteredPrizes.filter { it.status == PrizeStatus.RECEIVED || it.status == PrizeStatus.RETURNED }
+    val pendingPrizes = filteredPrizes.filter { it.status != PrizeStatus.RECEIVED && it.status != PrizeStatus.RETURNED }
 
     // 展开状态管理
     var showPending by remember { mutableStateOf(true) }
@@ -97,7 +99,8 @@ fun MyPrizesScreen(
                     items(pendingPrizes) { prize ->
                         PrizeItem(
                             prize = prize,
-                            onConfirmReceived = { shopViewModel.confirmReceived(prize.id) }
+                            onConfirmReceived = { shopViewModel.confirmReceived(prize.id) },
+                            onReturn = { shopViewModel.returnPrize(prize.id, taskViewModel) }
                         )
                     }
                 }
@@ -116,7 +119,8 @@ fun MyPrizesScreen(
                     items(receivedPrizes) { prize ->
                         PrizeItem(
                             prize = prize,
-                            onConfirmReceived = { shopViewModel.confirmReceived(prize.id) }
+                            onConfirmReceived = { shopViewModel.confirmReceived(prize.id) },
+                            onReturn = { }
                         )
                     }
                 }
@@ -165,7 +169,8 @@ private fun CategorySection(
 @Composable
 private fun PrizeItem(
     prize: RedeemedPrize,
-    onConfirmReceived: () -> Unit
+    onConfirmReceived: () -> Unit,
+    onReturn: () -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -212,6 +217,7 @@ private fun PrizeItem(
                     PrizeStatus.PENDING_SHIPMENT -> "待发货" to androidx.compose.ui.graphics.Color(0xFFFF9800) // 橙色
                     PrizeStatus.SHIPPED -> "已发货" to androidx.compose.ui.graphics.Color(0xFF2196F3) // 蓝色
                     PrizeStatus.RECEIVED -> "已收货" to androidx.compose.ui.graphics.Color(0xFF4CAF50) // 绿色
+                    PrizeStatus.RETURNED -> "已退货" to androidx.compose.ui.graphics.Color(0xFFF44336) // 红色
                 }
                 Text(
                     text = "状态：$statusText",
@@ -219,13 +225,41 @@ private fun PrizeItem(
                     fontWeight = FontWeight.SemiBold
                 )
 
-                // 确认收货按钮（仅待发货/已发货状态显示）
-                if (prize.status != PrizeStatus.RECEIVED) {
-                    Button(
-                        onClick = onConfirmReceived,
-                        modifier = Modifier.size(width = 120.dp, height = 36.dp)
-                    ) {
-                        Text("确认收货")
+                // 判断是否是红包类奖品
+                val isRedPacket = listOf(
+                    "每日暖心小小红包~",
+                    "随机小红包！",
+                    "随机中红包！！",
+                    "随机大红包！！！"
+                ).contains(prize.productName)
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    // 已退货状态不显示任何按钮
+                    if (prize.status != PrizeStatus.RETURNED) {
+                        // 退货按钮（仅非红包且待发货状态显示）
+                        if (!isRedPacket && prize.status == PrizeStatus.PENDING_SHIPMENT) {
+                            Button(
+                                onClick = onReturn,
+                                modifier = Modifier.size(width = 80.dp, height = 36.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.error
+                                )
+                            ) {
+                                Text("退货")
+                            }
+                        }
+
+                        // 确认收货按钮（仅待发货/已发货状态显示）
+                        if (prize.status != PrizeStatus.RECEIVED) {
+                            Button(
+                                onClick = onConfirmReceived,
+                                modifier = Modifier.size(width = 120.dp, height = 36.dp)
+                            ) {
+                                Text("确认收货")
+                            }
+                        }
                     }
                 }
             }

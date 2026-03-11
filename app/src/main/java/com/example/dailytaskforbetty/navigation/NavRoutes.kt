@@ -4,7 +4,8 @@ package com.example.dailytaskforbetty.navigation
 object NavRoutes {
     const val TIME_SCREEN = "time_screen" // 时间页面
     const val TASK_SCREEN = "task_screen" // 任务列表页面
-    const val MY_SCREEN = "my_screen" // “我的”页面
+    const val CALENDAR_SCREEN = "calendar_screen" // 日历页面
+    const val MY_SCREEN = "my_screen" // "我的"页面
     const val SHOP_SCREEN = "shop_screen" // 商店页面
     const val USER_INFO_SCREEN = "user_info_screen" // 个人信息
     const val ACCOUNT_SCREEN = "account_screen"     // 账户中心

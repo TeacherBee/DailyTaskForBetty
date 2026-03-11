@@ -1,6 +1,7 @@
 package com.example.dailytaskforbetty.data
 
 import androidx.room.Dao
+import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Update
@@ -23,4 +24,8 @@ interface RedeemedPrizeDao {
 
     @Query("SELECT * FROM redeemed_prizes WHERE id = :id")
     suspend fun getRedeemedPrizeById(id: String): RedeemedPrizeEntity?
+
+    // 删除已兑换奖品
+    @Delete
+    suspend fun deleteRedeemedPrize(entity: RedeemedPrizeEntity)
 }
