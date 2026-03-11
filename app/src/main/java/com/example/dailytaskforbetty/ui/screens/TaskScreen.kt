@@ -98,6 +98,14 @@ internal fun PresetTaskItem(
                     color = if (isCompleted) Color.Gray else Color(0xFF00C853)
                 )
                 Spacer(modifier = Modifier.height(4.dp))
+                if (task.cycle == com.example.dailytaskforbetty.model.TaskCycle.WEEKLY_5_TIMES) {
+                    Text(
+                        text = "本周进度：${task.weeklyCompletedCount}/${task.weeklyTarget}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                }
                 Text(
                     text = "下次刷新：$formattedNextRefresh",
                     style = MaterialTheme.typography.bodySmall,

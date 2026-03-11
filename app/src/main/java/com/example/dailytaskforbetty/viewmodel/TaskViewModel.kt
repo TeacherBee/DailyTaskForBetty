@@ -105,9 +105,11 @@ class TaskViewModel(
                         title = "运动（不管是跳操还是跳舞！动起来！）",
                         isCompleted = false,
                         reward = 5,
-                        cycle = TaskCycle.THREE_DAYS,
+                        cycle = TaskCycle.WEEKLY_5_TIMES,
                         lastCompletedTime = null,
-                        nextRefreshTime = calculateNextRefreshTime(TaskCycle.THREE_DAYS, null),
+                        nextRefreshTime = calculateNextRefreshTime(TaskCycle.WEEKLY_5_TIMES, null),
+                        weeklyTarget = 5,
+                        weeklyCompletedCount = 0
                     )
                 ).map { it.toEntity() }  // 转换为Entity
 
@@ -123,11 +125,22 @@ class TaskViewModel(
             val latestTasks = taskDao.observeAllTasks().first().map { it.toTask() }
             val updatedTasks = latestTasks.map { task ->
                 if (currentTime.after(task.nextRefreshTime)) {
-                    task.copy(
-                        isCompleted = false,
-                        lastCompletedTime = null,
-                        nextRefreshTime = calculateNextRefreshTime(task.cycle, null)
-                    )
+                    when (task.cycle) {
+                        TaskCycle.WEEKLY_5_TIMES -> {
+                            task.copy(
+                                isCompleted = false,
+                                weeklyCompletedCount = 0,
+                                nextRefreshTime = calculateNextRefreshTime(task.cycle, null)
+                            )
+                        }
+                        else -> {
+                            task.copy(
+                                isCompleted = false,
+                                lastCompletedTime = null,
+                                nextRefreshTime = calculateNextRefreshTime(task.cycle, null)
+                            )
+                        }
+                    }
                 } else {
                     task
                 }
@@ -158,11 +171,29 @@ class TaskViewModel(
                 rewardDao.insertRewardHistory(history)
 
                 // 3. 更新任务状态并同步到数据库
-                val updatedTask = targetTask.copy(
-                    isCompleted = true,
-                    lastCompletedTime = currentTime,
-                    nextRefreshTime = calculateNextRefreshTime(targetTask.cycle, currentTime)
-                )
+                val updatedTask = when (targetTask.cycle) {
+                    TaskCycle.WEEKLY_5_TIMES -> {
+                        val newWeeklyCompletedCount = targetTask.weeklyCompletedCount + 1
+                        val isFullyCompleted = newWeeklyCompletedCount >= targetTask.weeklyTarget
+                        targetTask.copy(
+                            isCompleted = true,
+                            weeklyCompletedCount = newWeeklyCompletedCount,
+                            lastCompletedTime = currentTime,
+                            nextRefreshTime = if (isFullyCompleted) {
+                                calculateNextRefreshTime(targetTask.cycle, currentTime)
+                            } else {
+                                calculateNextRefreshTime(TaskCycle.DAILY, currentTime)
+                            }
+                        )
+                    }
+                    else -> {
+                        targetTask.copy(
+                            isCompleted = true,
+                            lastCompletedTime = currentTime,
+                            nextRefreshTime = calculateNextRefreshTime(targetTask.cycle, currentTime)
+                        )
+                    }
+                }
                 taskDao.upsertTask(updatedTask.toEntity())  // 单个任务更新
             }
         }
@@ -200,6 +231,7 @@ class TaskViewModel(
                 calendar.time
             }
             TaskCycle.WEEKLY_5_TIMES -> {
+                calendar.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY)
                 calendar.add(Calendar.WEEK_OF_YEAR, 1)
                 calendar.set(Calendar.HOUR_OF_DAY, 0)
                 calendar.set(Calendar.MINUTE, 0)

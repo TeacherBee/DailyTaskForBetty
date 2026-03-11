@@ -12,7 +12,9 @@ fun TaskEntity.toTask(): Task {
         reward = reward,
         cycle = TaskCycle.valueOf(cycle), // 字符串转枚举
         lastCompletedTime = lastCompletedTime?.let { Date(it) }, // 时间戳转Date
-        nextRefreshTime = Date(nextRefreshTime)
+        nextRefreshTime = Date(nextRefreshTime),
+        weeklyTarget = weeklyTarget,
+        weeklyCompletedCount = weeklyCompletedCount
     )
 }
 
@@ -25,6 +27,8 @@ fun Task.toEntity(): TaskEntity {
         reward = reward,
         cycle = cycle.name, // 枚举转字符串
         lastCompletedTime = lastCompletedTime?.time, // Date转时间戳
-        nextRefreshTime = nextRefreshTime.time
+        nextRefreshTime = nextRefreshTime.time,
+        weeklyTarget = weeklyTarget,
+        weeklyCompletedCount = weeklyCompletedCount
     )
 }
