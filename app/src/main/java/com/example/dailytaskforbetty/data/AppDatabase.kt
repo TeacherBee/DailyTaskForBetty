@@ -41,7 +41,21 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext, // 应用上下文
                     AppDatabase::class.java,
                     "app_database" // 数据库文件名
-                ).fallbackToDestructiveMigration()   // 允许破坏性迁移（删旧建新的空库）
+                )
+                // 添加从版本6到7的迁移（添加RetroactiveHistoryEntity表）
+                .addMigrations(object : androidx.room.migration.Migration(6, 7) {
+                    override fun migrate(database: androidx.sqlite.db.SupportSQLiteDatabase) {
+                        database.execSQL(
+                            "CREATE TABLE IF NOT EXISTS `retroactive_history` (" +
+                                    "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                                    "`taskId` TEXT NOT NULL, " +
+                                    "`taskTitle` TEXT NOT NULL, " +
+                                    "`retroactiveDate` INTEGER NOT NULL, " +
+                                    "`year` INTEGER NOT NULL, " +
+                                    "`month` INTEGER NOT NULL)"
+                        )
+                    }
+                })
                 .build()
                 INSTANCE = instance
                 instance
